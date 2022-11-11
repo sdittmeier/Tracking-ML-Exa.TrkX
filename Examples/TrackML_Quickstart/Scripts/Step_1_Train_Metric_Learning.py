@@ -2,6 +2,9 @@
 This script runs step 1 of the TrackML Quickstart example: Training the metric learning model.
 """
 
+import warnings
+warnings.filterwarnings('ignore')
+
 import sys
 import os
 import yaml
