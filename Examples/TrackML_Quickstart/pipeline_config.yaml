@@ -2,6 +2,7 @@ common_configs:
   experiment_name: trackml_quickstart_1
   artifact_directory: artifacts
   gpus: 1
+
   clear_directories: True
 
 metric_learning_configs:
@@ -22,7 +23,7 @@ metric_learning_configs:
   activation: Tanh
   weight: 2
   randomisation: 2
-  points_per_batch: 100000
+  points_per_batch: 10000
   r_train: 0.1
   r_val: 0.1
   r_test: 0.1
@@ -33,7 +34,18 @@ metric_learning_configs:
   factor: 0.7
   patience: 4
   regime: [rp, hnm, norm]
-  max_epochs: 20
+  max_epochs: 30
+  
+  ##QNN Parameters
+   quantized_network: False
+   hidden_activation_qnn: "QuantReLU"
+   output_activation_qnn: None
+   weight_bit_width: 8
+   activation_bit_width: 4
+   input_layer_quantization: True
+
+
+
 
 gnn_configs:
   # Dataset parameters
@@ -64,7 +76,7 @@ gnn_configs:
   truth_key: pid_signal
   regime: [pid]
   mask_background: True
-  max_epochs: 30
+  max_epochs: 20
 
 track_building_configs:
   score_cut: 0.9
