@@ -34,18 +34,15 @@ metric_learning_configs:
   factor: 0.7
   patience: 4
   regime: [rp, hnm, norm]
-  max_epochs: 30
+  max_epochs: 2
   
   ##QNN Parameters
-   quantized_network: False
-   hidden_activation_qnn: "QuantReLU"
-   output_activation_qnn: None
-   weight_bit_width: 8
-   activation_bit_width: 4
-   input_layer_quantization: True
-
-
-
+  quantized_network: True
+  hidden_activation_qnn: "QuantReLU"
+  output_activation_qnn: null
+  weight_bit_width: 8
+  activation_bit_width: 4
+  input_layer_quantization: True
 
 gnn_configs:
   # Dataset parameters
