@@ -1,7 +1,7 @@
 common_configs:
   experiment_name: trackml_quickstart_1
   artifact_directory: artifacts
-  gpus: 0
+  gpus: 1
 
   clear_directories: True
 
