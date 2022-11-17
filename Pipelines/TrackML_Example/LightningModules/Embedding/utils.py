@@ -406,7 +406,7 @@ def make_quantized_mlp(
     weight_bit_width=8,
     activation_bit_width=4,
     input_layer_quantization=True,
-    layer_norm = False,
+    layer_norm = True,
 
 ):
     
@@ -439,10 +439,10 @@ def make_quantized_mlp(
     # Final layer
     layers.append(qnn.QuantLinear(sizes[-2], sizes[-1],bias=True, 
     weight_bit_width=weight_bit_width, bias_quant=BiasQuant,return_quant_tensor = True))
-    if output_activation is not None:
-        if layer_norm:
-            layers.append(nn.LayerNorm(sizes[-1]))
-        layers.append(output_activation(bit_width = activation_bit_width,return_quant_tensor = True))
+    # if output_activation is not None:
+    if layer_norm:
+        layers.append(nn.LayerNorm(sizes[-1]))
+    layers.append(qnn.QuantReLU(bit_width = activation_bit_width,return_quant_tensor = True))
     
     
     return nn.Sequential(*layers)
