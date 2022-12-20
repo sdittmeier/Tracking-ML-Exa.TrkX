@@ -402,7 +402,7 @@ def make_quantized_mlp(
     input_size,  ##input parameters of neural net
     sizes,  
     weight_bit_width=8,
-    activation_qnn = False,  
+    activation_qnn = True,
     activation_bit_width=4,
     input_layer_quantization=False,
     layer_norm = True,
