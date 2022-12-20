@@ -1,0 +1,71 @@
+activation: Tanh
+activation_bit_width: 32
+cell_channels: 9
+emb_dim: 12
+emb_hidden: 512
+factor: 0.7
+hidden_activation_qnn: false
+hparams:
+  activation: Tanh
+  activation_bit_width: 32
+  cell_channels: 9
+  emb_dim: 12
+  emb_hidden: 512
+  factor: 0.7
+  hidden_activation_qnn: false
+  input_dir: datasets/quickstart_example_1GeV
+  input_layer_quantization: true
+  knn: 50
+  lr: 0.001
+  margin: 0.1
+  max_epochs: 30
+  nb_layer: 4
+  output_activation_qnn: false
+  output_dir: datasets/quickstart_metric_learning_processed
+  patience: 4
+  points_per_batch: 100000
+  pt_background_cut: 1.0
+  pt_signal_cut: 1.0
+  quantized_network: true
+  r_test: 0.1
+  r_train: 0.1
+  r_val: 0.1
+  randomisation: 2
+  regime: &id001
+  - rp
+  - hnm
+  - norm
+  spatial_channels: 3
+  train_split: &id002
+  - 80
+  - 10
+  - 10
+  true_edges: modulewise_true_edges
+  warmup: 8
+  weight: 2
+  weight_bit_width: 32
+input_dir: datasets/quickstart_example_1GeV
+input_layer_quantization: true
+knn: 50
+lr: 0.001
+margin: 0.1
+max_epochs: 30
+nb_layer: 4
+output_activation_qnn: false
+output_dir: datasets/quickstart_metric_learning_processed
+patience: 4
+points_per_batch: 100000
+pt_background_cut: 1.0
+pt_signal_cut: 1.0
+quantized_network: true
+r_test: 0.1
+r_train: 0.1
+r_val: 0.1
+randomisation: 2
+regime: *id001
+spatial_channels: 3
+train_split: *id002
+true_edges: modulewise_true_edges
+warmup: 8
+weight: 2
+weight_bit_width: 32
