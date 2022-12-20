@@ -1,5 +1,5 @@
 common_configs:
-  experiment_name: w8_act1
+  experiment_name: act 32
   artifact_directory: IWBA_0101_8bitwidth
   gpus: 1
 
@@ -34,12 +34,12 @@ metric_learning_configs:
   factor: 0.7
   patience: 4
   regime: [rp, hnm, norm]
-  max_epochs: 2
+  max_epochs: 30
   
   ##QNN Parameters
   quantized_network: True
   weight_bit_width: 8
-  activation_bit_width: 4
+  activation_bit_width: 32
   input_layer_quantization: True
 
 gnn_configs:
