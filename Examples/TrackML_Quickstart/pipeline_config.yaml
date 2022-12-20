@@ -1,6 +1,6 @@
 common_configs:
-  experiment_name: trackml_quickstart_1
-  artifact_directory: artifacts
+  experiment_name: w8_act1
+  artifact_directory: IWBA_0101_8bitwidth
   gpus: 1
 
   clear_directories: True
@@ -17,7 +17,7 @@ metric_learning_configs:
   # Model parameters
   spatial_channels: 3
   cell_channels: 9
-  emb_hidden: 1024
+  emb_hidden: 512
   nb_layer: 4
   emb_dim: 12
   activation: Tanh
@@ -38,11 +38,9 @@ metric_learning_configs:
   
   ##QNN Parameters
   quantized_network: True
-  hidden_activation_qnn: "QuantReLU"
-  output_activation_qnn: null
   weight_bit_width: 8
-  activation_bit_width: 4
-  input_layer_quantization: True
+  activation_bit_width: 32
+  input_layer_quantization: False
 
 gnn_configs:
   # Dataset parameters
