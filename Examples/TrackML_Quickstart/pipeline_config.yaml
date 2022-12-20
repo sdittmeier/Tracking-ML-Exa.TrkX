@@ -38,8 +38,6 @@ metric_learning_configs:
   
   ##QNN Parameters
   quantized_network: True
-  hidden_activation_qnn: "QuantReLU"
-  output_activation_qnn: null
   weight_bit_width: 8
   activation_bit_width: 4
   input_layer_quantization: True
