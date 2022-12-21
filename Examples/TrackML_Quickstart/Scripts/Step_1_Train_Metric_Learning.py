@@ -20,7 +20,7 @@ sys.path.append("../../")
 
 from Pipelines.TrackML_Example.LightningModules.Embedding.Models.layerless_embedding import LayerlessEmbedding
 from utils.convenience_utils import headline
-from utils.quantization_utils import quantize_features
+from utils.quantization_utils import learn_quantization, quantize_features
 
 def parse_args():
     """Parse command line arguments."""
@@ -59,14 +59,21 @@ def train(config_file="pipeline_config.yaml"):
     # adapt for quantization
     model.setup(stage="fit") # This is needed for the model to build its dataset(s)
     training_events = model.trainset
+    validation_events = model.valset
+    test_events = model.testset
+
+    threshold = 0
+
+    learn_quantization(model.trainset, threshold)
+
     for event in model.trainset:
  #       print(event)
+        break
         event.x = quantize_features(event.x)
         event.cell_data = quantize_features(event.cell_data)
  #       print(event)
  #       print(event.x)
  #       print(event.cell_data)
-        break
 
     trainer.fit(model)
 

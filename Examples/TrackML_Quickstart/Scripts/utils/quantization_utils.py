@@ -3,6 +3,7 @@ import brevitas.nn as qnn
 import math
 import torch
 import pandas as pd
+import sys
 
 """
 following the example of FINN https://github.com/Xilinx/finn/blob/feature/tutorial_march21/notebooks/end2end_example/cybersecurity/1-train-mlp-with-brevitas.ipynb
@@ -42,7 +43,7 @@ def dec2bin(
     return np.vectorize(func)(column.values, number_of_bits)
      
 
-def findMinDiff(arr_in, n):
+def findMinDiff(arr_in, n, threshold = 0):
     #print(arr)
     # Initialize difference as infinite
     #arr = sorted(np.absolute(arr))
@@ -53,7 +54,7 @@ def findMinDiff(arr_in, n):
     # Find the min diff by comparing adjacent
     # pairs in sorted array
     for i in range(n-1):
-        if ((arr[i+1] - arr[i] < diff) and (arr[i+1] - arr[i] > 0)):
+        if ((arr[i+1] - arr[i] < diff) and (arr[i+1] - arr[i] > threshold)):
             diff = arr[i+1] - arr[i]
             val0 = arr[i]
             val1 = arr[i+1]
@@ -69,10 +70,47 @@ def get_max_bits(vector):
 def char_split(s):
     return np.array([ch for ch in s])
 
+def learn_quantization(trainset, threshold = 0):
+
+    for event in trainset:
+        try:
+            x
+        except NameError:
+            x = torch.clone(event.x)
+            c = torch.clone(event.cell_data)
+        else:
+            x = torch.cat((x,event.x))
+            c = torch.cat((c,event.cell_data))
+
+    x = torch.cat((x,c),1)
+    sum_maxbits = 0
+
+    print(x)
+
+
+    for ax in range(x.size(dim=1)):
+        #print(ax)
+        column_data = pd.DataFrame(x[:,ax])[0]
+        #print(column_data)
+        m, val0, val1 = findMinDiff(column_data, len(column_data), threshold)
+        m_inv = 1.0 / m
+        if m_inv > 1:
+            column_data = column_data * m_inv
+        column_data = column_data.astype(np.int32)
+        #n, k, l = findMinDiff(column_data, len(column_data))
+        maxbits = get_max_bits(column_data)
+        # account for sign!
+        if(column_data.min()<0): 
+            maxbits = maxbits + 1
+        
+        print(f"{ax} {maxbits} {m} {val0} {val1}")
+        sum_maxbits = sum_maxbits + maxbits
+
+
 def quantize_features(features):
 
     sum_maxbits = 0
-    sum_quant   = 0
+    #sum_quant   = 0
     #print(features)
     quantized_features = pd.DataFrame(features)
     #print(quantized_features)
@@ -92,15 +130,18 @@ def quantize_features(features):
         # account for sign!
         if(column_data.min()<0): 
             maxbits = maxbits + 1
-    #    print(f"{ax} {maxbits}")# {m} {val0} {val1} {m_inv} {get_min_positive_number(column_data)}")
+        with open('testquantization.txt','a') as f:
+            print(f"{ax} {maxbits}", file=f)# {m} {val0} {val1} {m_inv} {get_min_positive_number(column_data)}")
         sum_maxbits = sum_maxbits + maxbits
         #print(example_data_df[ax])
         #print(column_data)
         
         quantized_features[ax] = (dec2bin(column_data, maxbits, left_msb=False))#.reshape((-1,1)).flatten()
-        #print(quantized_df[ax])      
-
-    print(f"{sum_maxbits} vs {sum_quant}")
+        #print(quantized_df[ax])  
+        #     
+    with open('testquantization.txt','a') as f:
+        print(f"{sum_maxbits}", file=f)
+    print(f"{sum_maxbits}")
     #print(quantized_features)
             
     for column in quantized_features.columns:
