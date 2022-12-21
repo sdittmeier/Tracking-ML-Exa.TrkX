@@ -1,6 +1,6 @@
 common_configs:
-  experiment_name: trackml_quickstart_1
-  artifact_directory: artifacts
+  experiment_name: act 32
+  artifact_directory: IWBA_0101_8bitwidth
   gpus: 1
 
   clear_directories: True
@@ -17,7 +17,7 @@ metric_learning_configs:
   # Model parameters
   spatial_channels: 3
   cell_channels: 9
-  emb_hidden: 1024
+  emb_hidden: 512
   nb_layer: 4
   emb_dim: 12
   activation: Tanh
@@ -34,14 +34,12 @@ metric_learning_configs:
   factor: 0.7
   patience: 4
   regime: [rp, hnm, norm]
-  max_epochs: 2
+  max_epochs: 30
   
   ##QNN Parameters
   quantized_network: True
-  hidden_activation_qnn: "QuantReLU"
-  output_activation_qnn: null
   weight_bit_width: 8
-  activation_bit_width: 4
+  activation_bit_width: 32
   input_layer_quantization: True
 
 gnn_configs:
