@@ -53,8 +53,9 @@ def findMinDiff(arr_in, n, threshold = 0):
  
     # Find the min diff by comparing adjacent
     # pairs in sorted array
+    absolute_threshold = threshold * arr[n-1]
     for i in range(n-1):
-        if ((arr[i+1] - arr[i] < diff) and (arr[i+1] - arr[i] > threshold)):
+        if ((arr[i+1] - arr[i] < diff) and (arr[i+1] - arr[i] > absolute_threshold)):
             diff = arr[i+1] - arr[i]
             val0 = arr[i]
             val1 = arr[i+1]
@@ -85,8 +86,9 @@ def learn_quantization(trainset, threshold = 0):
     x = torch.cat((x,c),1)
     sum_maxbits = 0
 
-    print(x)
+    #print(x)
 
+    quantizers = []
 
     for ax in range(x.size(dim=1)):
         #print(ax)
@@ -105,54 +107,30 @@ def learn_quantization(trainset, threshold = 0):
         
         print(f"{ax} {maxbits} {m} {val0} {val1}")
         sum_maxbits = sum_maxbits + maxbits
+        quantizers.append([maxbits, m_inv])
+
+    return quantizers
 
 
-def quantize_features(features):
+def quantize_features(features, quantizers):
 
-    sum_maxbits = 0
-    #sum_quant   = 0
-    #print(features)
     quantized_features = pd.DataFrame(features)
-    #print(quantized_features)
 
     for ax in range(features.size(dim=1)):
         column_data = pd.DataFrame(features[:,ax])[0]
-        #print(column_data)
-        #print(len(column_data))
-        m, val0, val1 = findMinDiff(column_data, len(column_data))
-        m_inv = 1.0 / m
+        maxbits = quantizers[ax][0]
+        m_inv = quantizers[ax][1]
         if m_inv > 1:
             column_data = column_data * m_inv
         column_data = column_data.astype(np.int32)
-        n, x, y = findMinDiff(column_data, len(column_data))
-        #print(f"{n} is ideally 1")
-        maxbits = get_max_bits(column_data)
-        # account for sign!
-        if(column_data.min()<0): 
-            maxbits = maxbits + 1
-        with open('testquantization.txt','a') as f:
-            print(f"{ax} {maxbits}", file=f)# {m} {val0} {val1} {m_inv} {get_min_positive_number(column_data)}")
-        sum_maxbits = sum_maxbits + maxbits
-        #print(example_data_df[ax])
-        #print(column_data)
         
+        #here we should add clipping for max/min values
         quantized_features[ax] = (dec2bin(column_data, maxbits, left_msb=False))#.reshape((-1,1)).flatten()
-        #print(quantized_df[ax])  
-        #     
-    with open('testquantization.txt','a') as f:
-        print(f"{sum_maxbits}", file=f)
-    print(f"{sum_maxbits}")
-    #print(quantized_features)
-            
-    for column in quantized_features.columns:
-        #print(quantized_df[column])
-        quantized_features[column] = quantized_features[column].apply(char_split).values
-    #    print(quantized_df[column])
         
-    #print(quantized_df)
-
+    for column in quantized_features.columns:
+        quantized_features[column] = quantized_features[column].apply(char_split).values
+        
     quantized_features_separated = np.column_stack(quantized_features.values.T.tolist())
     #print(quantized_features_separated)
     features = torch.from_numpy(quantized_features_separated.astype(np.int8))
     return features
-    #print(features)

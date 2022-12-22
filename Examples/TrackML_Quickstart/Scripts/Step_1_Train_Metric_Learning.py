@@ -61,19 +61,33 @@ def train(config_file="pipeline_config.yaml"):
     training_events = model.trainset
     validation_events = model.valset
     test_events = model.testset
+    print(model)
 
-    threshold = 0
+    threshold = 0 # relative threshold, to account for different max values per feature
 
-    learn_quantization(model.trainset, threshold)
-
+    quantizers = learn_quantization(model.trainset, threshold)
+    print(quantizers)
+    print("quantizing trainset")
     for event in model.trainset:
- #       print(event)
-        break
-        event.x = quantize_features(event.x)
-        event.cell_data = quantize_features(event.cell_data)
- #       print(event)
- #       print(event.x)
- #       print(event.cell_data)
+#        print(event)
+#        print(event.x)
+#        print(event.cell_data)
+        event.x = quantize_features(event.x, quantizers[:3])
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:])
+#        print(event)
+#        print(event.x)
+#        print(event.cell_data)
+    
+    print("quantizing valset")
+    for event in model.valset:
+        event.x = quantize_features(event.x, quantizers[:3])
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:])
+    
+    print("quantizing testset")
+    for event in model.testset:
+        event.x = quantize_features(event.x, quantizers[:3])
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:])
+
 
     trainer.fit(model)
 
