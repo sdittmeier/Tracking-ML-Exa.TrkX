@@ -41,6 +41,25 @@ def dec2bin(
     func = my_binary_repr if left_msb else np.binary_repr
 
     return np.vectorize(func)(column.values, number_of_bits)
+
+def bin2dec(column, sign: bool):
+    
+    results_col = column.copy()
+    for idx, x in enumerate(column):
+#        print(idx, x)
+        for idy, y in enumerate(x):
+#            print(idx, x, idy, y)
+            if (idy == 0):
+                if sign:
+                    result = int(y)*(-1)*2**(len(x)-1)
+                else:
+                    result = int(y)*2**(len(x)-1)
+            else:
+                result = result + int(y)*2**(len(x)-(1+idy))
+
+        results_col[idx] = result
+    return results_col
+        
      
 
 def findMinDiff(arr_in, n, threshold = 0):
@@ -121,6 +140,7 @@ def learn_quantization(trainset, threshold = 0):
 def quantize_features(features, quantizers):
 
     quantized_features = pd.DataFrame(features)
+    restored_features  = pd.DataFrame()
 
     for ax in range(features.size(dim=1)):
         column_data = pd.DataFrame(features[:,ax])[0]
@@ -138,7 +158,12 @@ def quantize_features(features, quantizers):
             column_data =np.clip(column_data,0, 2**(maxbits)-1)
             
         quantized_features[ax] = (dec2bin(column_data, maxbits, left_msb=False))#.reshape((-1,1)).flatten()
-        
+#        print(quantized_features[ax])
+        test = bin2dec(quantized_features[ax], sign)
+#        print(test, sign)
+        norm_difference = sum((test*1.0/m_inv - pd.DataFrame(features[:,ax])[0]).abs())
+        print(ax, maxbits, m_inv, norm_difference)
+
     for column in quantized_features.columns:
         quantized_features[column] = quantized_features[column].apply(char_split).values
         
