@@ -58,15 +58,11 @@ def train(config_file="pipeline_config.yaml"):
 
     # adapt for quantization
     model.setup(stage="fit") # This is needed for the model to build its dataset(s)
-    training_events = model.trainset
-    validation_events = model.valset
-    test_events = model.testset
-    print(model)
 
     threshold = 0 # relative threshold, to account for different max values per feature
-
     quantizers = learn_quantization(model.trainset, threshold)
     print(quantizers)
+    
     print("quantizing trainset")
     for event in model.trainset:
 #        print(event)
