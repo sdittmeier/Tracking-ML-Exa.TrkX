@@ -21,6 +21,7 @@ sys.path.append("../../")
 from Pipelines.TrackML_Example.LightningModules.Embedding.Models.layerless_embedding import LayerlessEmbedding
 from utils.convenience_utils import headline
 from utils.quantization_utils import learn_quantization, quantize_features
+import csv
 
 def parse_args():
     """Parse command line arguments."""
@@ -60,19 +61,20 @@ def train(config_file="pipeline_config.yaml"):
     model.setup(stage="fit") # This is needed for the model to build its dataset(s)
 
     threshold = 0 # relative threshold, to account for different max values per feature
-    quantizers = learn_quantization(model.trainset, threshold)
+#    quantizers = learn_quantization(model.trainset, threshold)
+    with open('testquantization.txt', 'r') as f:
+        reader = csv.reader(f)
+        quantizers = list(reader)
+    for x in range(len(quantizers)):
+        quantizers[x][0] = int(quantizers[x][0])
+        quantizers[x][1] = float(quantizers[x][1])
+        quantizers[x][2] = (quantizers[x][2] == ' True')
     print(quantizers)
     
     print("quantizing trainset")
     for event in model.trainset:
-#        print(event)
-#        print(event.x)
-#        print(event.cell_data)
         event.x = quantize_features(event.x, quantizers[:3])
         event.cell_data = quantize_features(event.cell_data, quantizers[3:])
-#        print(event)
-#        print(event.x)
-#        print(event.cell_data)
     
     print("quantizing valset")
     for event in model.valset:

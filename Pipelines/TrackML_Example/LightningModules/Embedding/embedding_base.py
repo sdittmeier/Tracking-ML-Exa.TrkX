@@ -23,6 +23,9 @@ from torch_geometric.loader import DataLoader
 from torch_cluster import radius_graph
 import numpy as np
 
+from .quantization_utils import quantize_features
+import csv
+
 # Local Imports
 from .utils import graph_intersection, split_datasets, build_edges
 
@@ -82,6 +85,17 @@ class EmbeddingBase(LightningModule):
         return optimizer, scheduler
 
     def get_input_data(self, batch):
+
+        with open('testquantization.txt', 'r') as f:
+            reader = csv.reader(f)
+            quantizers = list(reader)
+        for x in range(len(quantizers)):
+            quantizers[x][0] = int(quantizers[x][0])
+            quantizers[x][1] = float(quantizers[x][1])
+            quantizers[x][2] = (quantizers[x][2] == ' True')
+
+        batch.x = quantize_features(batch.x.cpu(), quantizers[:3]).to('cuda:0')
+        batch.cell_data = quantize_features(batch.cell_data.cpu(), quantizers[3:]).to('cuda:0')
 
         if self.hparams["cell_channels"] > 0:
             input_data = torch.cat(
