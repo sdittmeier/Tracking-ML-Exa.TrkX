@@ -102,12 +102,14 @@ def learn_quantization(trainset, threshold = 0):
         #n, k, l = findMinDiff(column_data, len(column_data))
         maxbits = get_max_bits(column_data)
         # account for sign!
+        sign = False
         if(column_data.min()<0): 
             maxbits = maxbits + 1
+            sign = True
         
         print(f"{ax} {maxbits} {m} {val0} {val1}")
         sum_maxbits = sum_maxbits + maxbits
-        quantizers.append([maxbits, m_inv])
+        quantizers.append([maxbits, m_inv, sign])
 
     return quantizers
 
@@ -120,11 +122,17 @@ def quantize_features(features, quantizers):
         column_data = pd.DataFrame(features[:,ax])[0]
         maxbits = quantizers[ax][0]
         m_inv = quantizers[ax][1]
+        sign = quantizers[ax][2]
         if m_inv > 1:
             column_data = column_data * m_inv
         column_data = column_data.astype(np.int32)
         
-        #here we should add clipping for max/min values
+        #here we add clipping for max/min values, we need information if there is a sign involved for clipping (int or uint)!
+        if(sign):
+            column_data =np.clip(column_data,-2**(maxbits-1), 2**(maxbits-1)-1)
+        else:
+            column_data =np.clip(column_data,0, 2**(maxbits)-1)
+            
         quantized_features[ax] = (dec2bin(column_data, maxbits, left_msb=False))#.reshape((-1,1)).flatten()
         
     for column in quantized_features.columns:
