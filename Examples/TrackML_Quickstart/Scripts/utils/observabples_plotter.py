@@ -18,7 +18,7 @@ obs = {0:"pur",1:"eff",2:"train_loss",3:"val_loss"}  ##observations that we are 
 epoch = np.arange(1,31)   ### epoch array from values 1 to 30 
 
 
-df = pd.read_csv("IWBA_0101_8bwidth/metric_learning/act 32/version_46/metrics.csv")  ##reading the csv file
+df = pd.read_csv("metrics_46.csv")  ##reading the csv file
 
 j = 1 ##it will plot eff see "obs array" if it's 3 then it will plot val_loss
 ax.set_xlabel("epochs")

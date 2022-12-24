@@ -137,10 +137,10 @@ def learn_quantization(trainset, threshold = 0):
     return quantizers
 
 
-def quantize_features(features, quantizers):
+def quantize_features(features, quantizers, verbose=False):
 
     quantized_features = pd.DataFrame(features)
-    restored_features  = pd.DataFrame()
+    restored_features  = pd.DataFrame(features)
 
     for ax in range(features.size(dim=1)):
         column_data = pd.DataFrame(features[:,ax])[0]
@@ -159,15 +159,19 @@ def quantize_features(features, quantizers):
             
         quantized_features[ax] = (dec2bin(column_data, maxbits, left_msb=False))#.reshape((-1,1)).flatten()
 #        print(quantized_features[ax])
-        test = bin2dec(quantized_features[ax], sign)
-#        print(test, sign)
-        norm_difference = sum((test*1.0/m_inv - pd.DataFrame(features[:,ax])[0]).abs())
-        print(ax, maxbits, m_inv, norm_difference)
+        restored_features[ax] = bin2dec(quantized_features[ax], sign)
+#        print(restored_features[ax], sign)
+        norm_difference = sum((restored_features[ax]*1.0/m_inv - pd.DataFrame(features[:,ax])[0]).abs())
+        if verbose:
+            print(ax, maxbits, m_inv, norm_difference)
 
     for column in quantized_features.columns:
         quantized_features[column] = quantized_features[column].apply(char_split).values
         
     quantized_features_separated = np.column_stack(quantized_features.values.T.tolist())
     #print(quantized_features_separated)
+    ## below returns binarized
     features = torch.from_numpy(quantized_features_separated.astype(np.float32))
+    ## below returns quantized, but non binarized
+    #features = torch.tensor(restored_features[:].values.astype(np.float32))
     return features

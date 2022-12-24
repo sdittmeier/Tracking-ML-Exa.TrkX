@@ -60,8 +60,8 @@ def train(config_file="pipeline_config.yaml"):
     # adapt for quantization
     model.setup(stage="fit") # This is needed for the model to build its dataset(s)
 
-    threshold = 0 # relative threshold, to account for different max values per feature
-#    quantizers = learn_quantization(model.trainset, threshold)
+    threshold = 1e-6 # relative threshold, to account for different max values per feature
+    quantizers = learn_quantization(model.trainset, threshold)
     with open('testquantization.txt', 'r') as f:
         reader = csv.reader(f)
         quantizers = list(reader)
@@ -78,8 +78,8 @@ def train(config_file="pipeline_config.yaml"):
     
     print("quantizing valset")
     for event in model.valset:
-        event.x = quantize_features(event.x, quantizers[:3])
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:])
+        event.x = quantize_features(event.x, quantizers[:3], True)
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:], True)
     
     print("quantizing testset")
     for event in model.testset:
