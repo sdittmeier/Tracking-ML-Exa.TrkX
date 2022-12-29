@@ -137,41 +137,59 @@ def learn_quantization(trainset, threshold = 0):
     return quantizers
 
 
-def quantize_features(features, quantizers, verbose=False):
+def quantize_features(features, quantizers, verbose=False, fixed_point=False, pre_point : int = 0, post_point : int = 0):
 
     quantized_features = pd.DataFrame(features)
     restored_features  = pd.DataFrame(features)
 
-    for ax in range(features.size(dim=1)):
-        column_data = pd.DataFrame(features[:,ax])[0]
-        maxbits = quantizers[ax][0]
-        m_inv = quantizers[ax][1]
-        sign = quantizers[ax][2]
-        if m_inv > 1:
-            column_data = column_data * m_inv
-        column_data = column_data.astype(np.int32)
-        
-        #here we add clipping for max/min values, we need information if there is a sign involved for clipping (int or uint)!
-        if(sign):
-            column_data =np.clip(column_data,-2**(maxbits-1), 2**(maxbits-1)-1)
-        else:
-            column_data =np.clip(column_data,0, 2**(maxbits)-1)
+    if fixed_point :
+        for ax in range(features.size(dim=1)):
+            column_data = pd.DataFrame(features[:,ax])[0]
+            # first we apply clipping of data for max values, signed, pre_point does not include the sign bit
+            column_data =np.clip(column_data,-(2**pre_point), (2**pre_point)-1)
+            # then we round, multiply each number by a 2**bits, round to integer, and divide back down
+            column_data = column_data * (2**post_point)
+            column_data = column_data.astype(np.int32)
+            column_data = column_data.astype(np.float32)
+            column_data = column_data / (2**post_point)
+            quantized_features[ax] = column_data
+            norm_difference = sum((quantized_features[ax] - pd.DataFrame(features[:,ax])[0]).abs())            
+            if verbose:
+                print(ax, maxbits, m_inv, norm_difference)
+        features = torch.from_numpy(quantized_features.astype(np.float32))
+    else:
             
-        quantized_features[ax] = (dec2bin(column_data, maxbits, left_msb=False))#.reshape((-1,1)).flatten()
-#        print(quantized_features[ax])
-        #restored_features[ax] = bin2dec(quantized_features[ax], sign)
-#        print(restored_features[ax], sign)
-        #norm_difference = sum((restored_features[ax]*1.0/m_inv - pd.DataFrame(features[:,ax])[0]).abs())
-        if verbose:
-            print(ax, maxbits, m_inv, norm_difference)
+        for ax in range(features.size(dim=1)):
+            column_data = pd.DataFrame(features[:,ax])[0]
+            maxbits = quantizers[ax][0]
+            m_inv = quantizers[ax][1]
+            sign = quantizers[ax][2]
+            if m_inv > 1:
+                column_data = column_data * m_inv
+            column_data = column_data.astype(np.int32)
+            
+            #here we add clipping for max/min values, we need information if there is a sign involved for clipping (int or uint)!
+            if(sign):
+                column_data =np.clip(column_data,-2**(maxbits-1), 2**(maxbits-1)-1)
+            else:
+                column_data =np.clip(column_data,0, 2**(maxbits)-1)
+                
+            quantized_features[ax] = (dec2bin(column_data, maxbits, left_msb=False))#.reshape((-1,1)).flatten()
+    #        print(quantized_features[ax])
+            restored_features[ax] = bin2dec(quantized_features[ax], sign)
+    #        print(restored_features[ax], sign)
+            norm_difference = sum((restored_features[ax]*1.0/m_inv - pd.DataFrame(features[:,ax])[0]).abs())
+            if verbose:
+                print(ax, maxbits, m_inv, norm_difference)
 
-    for column in quantized_features.columns:
-        quantized_features[column] = quantized_features[column].apply(char_split).values
-        
-    quantized_features_separated = np.column_stack(quantized_features.values.T.tolist())
-    #print(quantized_features_separated)
-    ## below returns binarized
-    features = torch.from_numpy(quantized_features_separated.astype(np.float32))
-    ## below returns quantized, but non binarized
-    # features = torch.tensor(restored_features[:].values.astype(np.float32))
+        for column in quantized_features.columns:
+            quantized_features[column] = quantized_features[column].apply(char_split).values
+            
+        quantized_features_separated = np.column_stack(quantized_features.values.T.tolist())
+        #print(quantized_features_separated)
+        ## below returns binarized
+        features = torch.from_numpy(quantized_features_separated.astype(np.float32))
+        ## below returns quantized, but non binarized
+        #features = torch.tensor(restored_features[:].values.astype(np.float32))
+
     return features

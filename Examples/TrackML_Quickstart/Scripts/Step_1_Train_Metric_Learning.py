@@ -61,6 +61,9 @@ def train(config_file="pipeline_config.yaml"):
     model.setup(stage="fit") # This is needed for the model to build its dataset(s)
 
     threshold = 1e-6 # relative threshold, to account for different max values per feature
+    fixed_point = True
+    pre_point = 5
+    post_point = 20
     quantizers = learn_quantization(model.trainset, threshold)
     with open('testquantization.txt', 'r') as f:
         reader = csv.reader(f)
@@ -73,18 +76,18 @@ def train(config_file="pipeline_config.yaml"):
     
     print("quantizing trainset")
     for event in model.trainset:
-        event.x = quantize_features(event.x, quantizers[:3])
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:])
+        event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
     
     print("quantizing valset")
     for event in model.valset:
-        event.x = quantize_features(event.x, quantizers[:3], True)
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:], True)
+        event.x = quantize_features(event.x, quantizers[:3], True, , fixed_point, pre_point, post_point)
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:], True, , fixed_point, pre_point, post_point)
     
     print("quantizing testset")
     for event in model.testset:
-        event.x = quantize_features(event.x, quantizers[:3])
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:])
+        event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
 
 
     trainer.fit(model)

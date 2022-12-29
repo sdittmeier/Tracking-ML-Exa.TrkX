@@ -94,8 +94,12 @@ class EmbeddingBase(LightningModule):
             quantizers[x][1] = float(quantizers[x][1])
             quantizers[x][2] = (quantizers[x][2] == ' True')
 
-        batch.x = quantize_features(batch.x.cpu(), quantizers[:3]).to('cuda:0')
-        batch.cell_data = quantize_features(batch.cell_data.cpu(), quantizers[3:]).to('cuda:0')
+        fixed_point = True
+        pre_point = 5
+        post_point = 20
+
+        batch.x = quantize_features(batch.x.cpu(), quantizers[:3], False, fixed_point, pre_point, post_point)).to('cuda:0')
+        batch.cell_data = quantize_features(batch.cell_data.cpu(), quantizers[3:], False, fixed_point, pre_point, post_point)).to('cuda:0')
 
         if self.hparams["cell_channels"] > 0:
             input_data = torch.cat(
