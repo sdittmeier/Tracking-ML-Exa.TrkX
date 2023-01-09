@@ -146,7 +146,7 @@ def quantize_features(features, quantizers, verbose=False, fixed_point=False, pr
         for ax in range(features.size(dim=1)):
             column_data = pd.DataFrame(features[:,ax])[0]
             # first we apply clipping of data for max values, signed, pre_point does not include the sign bit
-            column_data =np.clip(column_data,-(2**pre_point), 2**pre_point-2**post_point)
+            column_data =np.clip(column_data,-(2**pre_point), 2**pre_point-2**(-post_point))
             # then we round, multiply each number by a 2**bits, round to integer, and divide back down
             column_data = column_data * (2**post_point)
             column_data = column_data.astype(np.int32)
