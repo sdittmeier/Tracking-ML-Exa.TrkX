@@ -1,9 +1,9 @@
 common_configs:
-  experiment_name: act 32
+  experiment_name: act_6
   artifact_directory: IWBA_0101_8bitwidth
   gpus: 1
 
-  clear_directories: True
+  clear_directories: Truel
 
 metric_learning_configs:
   # Dataset parameters
@@ -38,9 +38,10 @@ metric_learning_configs:
   
   ##QNN Parameters
   quantized_network: True
-  weight_bit_width: 8
-  activation_bit_width: 32
-  input_layer_quantization: True
+  weight_bit_width: [8,6,8]
+  activation_bit_width: 8
+  input_layer_quantization: False
+  output_activation_quantization: False
 
 gnn_configs:
   # Dataset parameters
