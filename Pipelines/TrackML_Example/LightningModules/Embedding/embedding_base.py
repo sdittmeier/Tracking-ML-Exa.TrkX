@@ -26,6 +26,8 @@ import numpy as np
 from .quantization_utils import quantize_features
 import csv
 
+import wandb
+
 # Local Imports
 from .utils import graph_intersection, split_datasets, build_edges
 
@@ -95,8 +97,8 @@ class EmbeddingBase(LightningModule):
             quantizers[x][2] = (quantizers[x][2] == ' True')
 
         fixed_point = True
-        pre_point = 3
-        post_point = 12
+        pre_point = 5
+        post_point = 20
 
         batch.x = quantize_features(batch.x.cpu(), quantizers[:3], False, fixed_point, pre_point, post_point).to('cuda:0')
         batch.cell_data = quantize_features(batch.cell_data.cpu(), quantizers[3:], False, fixed_point, pre_point, post_point).to('cuda:0')
@@ -320,6 +322,8 @@ class EmbeddingBase(LightningModule):
                 {"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr},
                 on_epoch=True,
                 on_step=False
+            )
+            wandb.log({"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr}
             )
 
         if verbose:
