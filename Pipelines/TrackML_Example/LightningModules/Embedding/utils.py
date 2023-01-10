@@ -401,9 +401,10 @@ def make_quantized_mlp(
 
     input_size,  ##input parameters of neural net
     sizes,  
-    weight_bit_width=8,
+    weight_bit_width=[8,4,8],  ##providing weights in form of array now
     activation_qnn = True,
     activation_bit_width=4,
+    output_activation_quantization = False,
     input_layer_quantization=False,
     layer_norm = True,
 
@@ -424,8 +425,9 @@ def make_quantized_mlp(
     # Hidden layers of a quantized neural network
 
     for i in range(n_layers-1):
+
         layers.append(qnn.QuantLinear(sizes[i], sizes[i + 1],bias=False,
-         weight_bit_width=weight_bit_width,return_quant_tensor = True))
+         weight_bit_width=weight_bit_width[0 if i ==0 else 1],return_quant_tensor = True))  ##adding first and hidden layer weights
         if layer_norm:   ##using batch norm
             layers.append(nn.BatchNorm1d(sizes[i + 1]))
         if activation_qnn:   ##if qnn activation is on , we use QuantReLU else nn.ReLU
@@ -435,12 +437,12 @@ def make_quantized_mlp(
 
     # Final layer
     layers.append(qnn.QuantLinear(sizes[-2], sizes[-1],bias=False, 
-    weight_bit_width=weight_bit_width,return_quant_tensor = True))
+    weight_bit_width=weight_bit_width[-1],return_quant_tensor = True))
     # if output_activation is not None:
     if layer_norm:
         layers.append(nn.BatchNorm1d(sizes[-1]))
 
-    if activation_qnn:
+    if output_activation_quantization:
         layers.append(qnn.QuantReLU(bit_width = activation_bit_width,return_quant_tensor = True))
     else:
         layers.append(nn.ReLU())
