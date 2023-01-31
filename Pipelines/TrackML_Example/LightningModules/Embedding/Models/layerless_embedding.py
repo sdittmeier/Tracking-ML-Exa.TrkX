@@ -41,6 +41,7 @@ class LayerlessEmbedding(EmbeddingBase):
                 in_channels,
                 [hparams["emb_hidden"]] * hparams["nb_layer"] + [hparams["emb_dim"]],
                 weight_bit_width = hparams["weight_bit_width"],
+                activation_qnn = hparams["activation_qnn"],
                 activation_bit_width = hparams["activation_bit_width"],
                 input_layer_quantization = hparams["input_layer_quantization"],
                 layer_norm = True

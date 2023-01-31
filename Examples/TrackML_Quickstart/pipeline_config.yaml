@@ -1,9 +1,9 @@
 common_configs:
-  experiment_name: act 32
-  artifact_directory: IWBA_0101_8bitwidth
+  experiment_name: act_10_W_828
+  artifact_directory: IWBA_0101_variable_weights
   gpus: 1
 
-  clear_directories: True
+  clear_directories: Truel
 
 metric_learning_configs:
   # Dataset parameters
@@ -37,10 +37,12 @@ metric_learning_configs:
   max_epochs: 30
   
   ##QNN Parameters
-  quantized_network: False
-  weight_bit_width: 8
-  activation_bit_width: 32
+  quantized_network: True
+  weight_bit_width: [8,2,8]
+  activation_qnn: True ## telling the network to use quantReLU()
+  activation_bit_width: 10  ##activation bit width
   input_layer_quantization: False
+  
 
 gnn_configs:
   # Dataset parameters
