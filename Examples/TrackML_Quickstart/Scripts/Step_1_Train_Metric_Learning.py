@@ -71,9 +71,9 @@ def train(config_file="pipeline_config.yaml"):
     model.setup(stage="fit") # This is needed for the model to build its dataset(s)
 
     threshold = 1e-6 # relative threshold, to account for different max values per feature
-    fixed_point = True
-    pre_point = 5
-    post_point = 20
+    fixed_point = metric_learning_configs["input_quantization"]
+    pre_point = metric_learning_configs["integer_part"]
+    post_point = metric_learning_configs["fractional_part"]
 #    quantizers = learn_quantization(model.trainset, threshold)
     with open('testquantization.txt', 'r') as f:
         reader = csv.reader(f)

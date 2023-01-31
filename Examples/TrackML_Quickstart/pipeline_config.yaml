@@ -42,6 +42,11 @@ metric_learning_configs:
   activation_qnn: True ## telling the network to use quantReLU()
   activation_bit_width: 10  ##activation bit width
   input_layer_quantization: False
+
+  # Input quantization Parameters, only using fixed point representation
+  input_quantization: True
+  integer_part: 1
+  fractional_part: 8
   
 
 gnn_configs:

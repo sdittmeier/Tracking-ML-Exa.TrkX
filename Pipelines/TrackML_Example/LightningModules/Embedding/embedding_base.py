@@ -96,9 +96,9 @@ class EmbeddingBase(LightningModule):
             quantizers[x][1] = float(quantizers[x][1])
             quantizers[x][2] = (quantizers[x][2] == ' True')
 
-        fixed_point = True
-        pre_point = 5
-        post_point = 20
+        fixed_point = self.hparams["input_quantization"]
+        pre_point = self.hparams["integer_part"]
+        post_point = self.hparams["fractional_part"]
 
         batch.x = quantize_features(batch.x.cpu(), quantizers[:3], False, fixed_point, pre_point, post_point).to('cuda:0')
         batch.cell_data = quantize_features(batch.cell_data.cpu(), quantizers[3:], False, fixed_point, pre_point, post_point).to('cuda:0')
