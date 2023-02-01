@@ -408,6 +408,7 @@ def make_quantized_mlp(
     activation_bit_width=4,
     output_activation_quantization = False,
     input_layer_quantization=False,
+    input_layer_bitwidth = 10,
     layer_norm = True,
 
 ):
@@ -421,7 +422,7 @@ def make_quantized_mlp(
     if(input_layer_quantization):
         ##quantizing the input layer
         layers.append(qnn.QuantIdentity(
-                bit_width=weight_bit_width,return_quant_tensor = True ))
+                bit_width=input_layer_bitwidth,return_quant_tensor = True ))
 
     
     # Hidden layers of a quantized neural network
