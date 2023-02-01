@@ -434,7 +434,7 @@ def make_quantized_mlp(
         if layer_norm:   ##using batch norm
             layers.append(nn.BatchNorm1d(sizes[i + 1]))
         if activation_qnn:   ##if qnn activation is on , we use QuantReLU else nn.ReLU
-            layers.append(qnn.QuantReLU(bit_width = activation_bit_width,return_quant_tensor = True))
+            layers.append(qnn.QuantReLU(bit_width = activation_bit_width[0 if i==0 else 1],return_quant_tensor = True))
         else:
             layers.append(nn.ReLU())
 
@@ -446,7 +446,7 @@ def make_quantized_mlp(
         layers.append(nn.BatchNorm1d(sizes[-1]))
 
     if output_activation_quantization:
-        layers.append(qnn.QuantReLU(bit_width = activation_bit_width,return_quant_tensor = True))
+        layers.append(qnn.QuantReLU(bit_width = activation_bit_width[-1],return_quant_tensor = True))
     else:
         layers.append(nn.ReLU())
 
