@@ -1,5 +1,6 @@
 import numpy as np
-import brevitas.nn as qnn
+from brevitas.quant_tensor import QuantTensor
+from brevitas.nn import QuantIdentity
 import math
 import torch
 import pandas as pd
@@ -140,7 +141,7 @@ def learn_quantization(trainset, threshold = 0):
 def quantize_features(features, quantizers, verbose=False, fixed_point=False, pre_point : int = 0, post_point : int = 0):
 
     quantized_features = pd.DataFrame(features)
-    restored_features  = pd.DataFrame(features)
+#    restored_features  = pd.DataFrame(features)
 
     if fixed_point :
         for ax in range(features.size(dim=1)):
@@ -157,8 +158,28 @@ def quantize_features(features, quantizers, verbose=False, fixed_point=False, pr
             if verbose:
                 print(ax, fixed_point, pre_point, post_point, norm_difference)
         features = torch.from_numpy(quantized_features[:].values.astype(np.float32))
-    else:
-            
+
+# test if quantidentity returns proper quanttensor that is close to input data
+#        print(features)
+#        scale = 0.01
+#        bit_width = 10
+#        zero_point = 2.
+##        qnn_features = QuantTensor(features,
+##                                   scale = torch.tensor(scale),
+##                                   zero_point=torch.tensor(zero_point),
+##                                   bit_width=torch.tensor(float(bit_width)),
+##                                   signed=True,
+##                                   training=True)
+#        qnn_id=QuantIdentity(bit_width = bit_width, return_quant_tensor=True)
+#        qnn_features=qnn_id(features)
+#        print(qnn_features)
+#        print(f"is valid? {qnn_features.is_valid}")
+#        print(f"is close? {torch.isclose(qnn_features, features).all().item()}")
+
+        # removed binary quantization below
+    return features
+"""   else:
+           
         for ax in range(features.size(dim=1)):
             column_data = pd.DataFrame(features[:,ax])[0]
             maxbits = quantizers[ax][0]
@@ -191,5 +212,4 @@ def quantize_features(features, quantizers, verbose=False, fixed_point=False, pr
         features = torch.from_numpy(quantized_features_separated.astype(np.float32))
         ## below returns quantized, but non binarized
         #features = torch.tensor(restored_features[:].values.astype(np.float32))
-
-    return features
+"""
