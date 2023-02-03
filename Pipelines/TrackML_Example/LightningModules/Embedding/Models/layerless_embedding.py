@@ -40,14 +40,13 @@ class LayerlessEmbedding(EmbeddingBase):
             self.network = make_quantized_mlp(
                 in_channels,
                 [hparams["emb_hidden"]] * hparams["nb_layer"] + [hparams["emb_dim"]],
-                weight_bit_width = hparams["weight_bit_width"],
+                weight_bit_width = [hparams["weight_bit_width_input"], hparams["weight_bit_width_hidden"], hparams["weight_bit_width_output"]],
                 activation_qnn = hparams["activation_qnn"],
-                activation_bit_width = hparams["activation_bit_width"],
+                activation_bit_width = [hparams["activation_bit_width_input"], hparams["activation_bit_width_hidden"], hparams["activation_bit_width_output"]],
                 output_activation_quantization = hparams["output_activation_quantization"],
-                input_layer_quantization = hparams["input_layer_quantization"],
-                input_layer_bitwidth = hparams["input_layer_bitwidth"],
+                input_layer_quantization = hparams["input_quantization"],
+                input_layer_bitwidth = 1 + hparams["integer_part"] + hparams["fractional_part"],
                 layer_norm = True
-
             )
 
 

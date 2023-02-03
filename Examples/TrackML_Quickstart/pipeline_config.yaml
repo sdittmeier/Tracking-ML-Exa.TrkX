@@ -38,15 +38,16 @@ metric_learning_configs:
   
   ##QNN Parameters
   quantized_network: True
-  weight_bit_width: [6,2,6]
+  weight_bit_width_input: 6
+  weight_bit_width_hidden: 2
+  weight_bit_width_output: 6
   activation_qnn: True ## telling the network to use quantReLU()
-  activation_bit_width: [8,6,8]  ##activation bit width
+  activation_bit_width_input: 8
+  activation_bit_width_hidden: 6
+  activation_bit_width_output: 8
   output_activation_quantization: False
-  input_layer_quantization: True
-  input_layer_bitwidth: 10 # sign (1) + integer_part (1) + fractional_part (8)
-
   # Input quantization Parameters, only using fixed point representation
-  input_quantization: True
+  input_quantization: True # also enables QuantIdentity
   integer_part: 1
   fractional_part: 8
   
