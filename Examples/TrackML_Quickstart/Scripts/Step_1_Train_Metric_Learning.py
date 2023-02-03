@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.loggers import WandbLogger
 import torch
 
 sys.path.append("../../")
@@ -24,6 +25,7 @@ from utils.quantization_utils import learn_quantization, quantize_features
 import csv
 
 import wandb
+
 
 def parse_args():
     """Parse command line arguments."""
@@ -50,6 +52,7 @@ def train(config_file="pipeline_config.yaml"):
         # track hyperparameters and run metadata
         config=metric_learning_configs
     )
+    metric_learning_configs = dict(wandb.config)
 
     logging.info(headline("a) Initialising model"))
 
@@ -58,7 +61,7 @@ def train(config_file="pipeline_config.yaml"):
     logging.info(headline("b) Running training" ))
 
     save_directory = os.path.join(common_configs["artifact_directory"], "metric_learning")
-    logger = CSVLogger(save_directory, name=common_configs["experiment_name"])
+    logger = WandbLogger(save_directory)
 
     trainer = Trainer(
         accelerator='gpu' if torch.cuda.is_available() else None,
@@ -113,8 +116,8 @@ def train(config_file="pipeline_config.yaml"):
 
 if __name__ == "__main__":
 
-    args = parse_args()
-    config_file = args.config
+#    args = parse_args()
+#    config_file = args.config
 
-    trainer, model = train(config_file)    
+    trainer, model = train()    
 

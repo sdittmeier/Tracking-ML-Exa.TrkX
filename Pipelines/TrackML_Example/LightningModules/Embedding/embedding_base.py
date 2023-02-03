@@ -26,8 +26,6 @@ import numpy as np
 from .quantization_utils import quantize_features
 import csv
 
-import wandb
-
 # Local Imports
 from .utils import graph_intersection, split_datasets, build_edges
 
@@ -322,8 +320,6 @@ class EmbeddingBase(LightningModule):
                 {"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr},
                 on_epoch=True,
                 on_step=False
-            )
-            wandb.log({"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr}
             )
 
         if verbose:
