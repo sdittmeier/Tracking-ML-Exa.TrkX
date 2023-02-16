@@ -292,10 +292,23 @@ class EmbeddingBase(LightningModule):
             [batch.signal_true_edges, batch.signal_true_edges.flip(0)], axis=-1
         )
 
+        R95, R98, R99 = self.get_working_points(spatial, spatial, e_bidir)
+
         # Build whole KNN graph
+        e_spatial_99 = build_edges(
+            spatial, spatial, indices=None, r_max=R99, k_max=knn_num
+        )
+
         e_spatial = build_edges(
             spatial, spatial, indices=None, r_max=knn_radius, k_max=knn_num
         )
+
+        e_spatial_99, y_cluster_99 = self.get_truth(batch, e_spatial_99, e_bidir)
+
+        _, d_99 = self.get_hinge_distance(
+            spatial, spatial, e_spatial_99.to(self.device), y_cluster_99
+        )
+        pur_95, pur_98, pur_99 = self.get_working_metrics(e_spatial_99, y_cluster_99, d_99, R95, R98)
 
         e_spatial, y_cluster = self.get_truth(batch, e_spatial, e_bidir)
 
@@ -317,7 +330,7 @@ class EmbeddingBase(LightningModule):
         if log:
             current_lr = self.optimizers().param_groups[0]["lr"]
             self.log_dict(
-                {"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr},
+                {"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr, "R95": R95, "R98": R98, "R99": R99, "pur_95": pur_95, "pur_98": pur_98, "pur_99": pur_99},
                 on_epoch=True,
                 on_step=False
             )
@@ -336,6 +349,48 @@ class EmbeddingBase(LightningModule):
             'eff': eff,
             'pur': pur
         }
+    
+    def get_working_points(self, spatial1, spatial2, truth):
+        """
+        Args:
+            spatial (``torch.tensor``, required): The spatial embedding of the data
+            truth (``torch.tensor``, required): The truth graph of the data
+
+        Returns:
+            ``torch.tensor``: The R95, R98, R99 values
+        """
+        # Get the R95, R98, R99 values
+        # distances = torch.sum((spatial[truth[0]] - spatial[truth[1]])**2, dim=-1)
+        distances = torch.pairwise_distance(spatial1[truth[0]], spatial2[truth[1]])
+        # Sort the distances
+        distances, indices = torch.sort(distances, descending=False)
+        # Get the indices of the 95th, 98th, 99th percentile
+        R95 = distances[int(len(distances)*0.95)]
+        R98 = distances[int(len(distances)*0.98)]
+        R99 = distances[int(len(distances)*0.99)]
+
+        return R95.item(), R98.item(), R99.item()    
+
+    def get_working_metrics(self, e_spatial, y_cluster, d, R95, R98):
+        edge_mask_98 = d < R98**2
+        e_spatial_98, y_cluster_98 = e_spatial[:, edge_mask_98], y_cluster[edge_mask_98]
+
+        edge_mask_95 = d < R95**2
+        e_spatial_95, y_cluster_95 = e_spatial[:, edge_mask_95], y_cluster[edge_mask_95]
+
+        cluster_tp_99 = y_cluster.sum()
+        cluster_tp_98 = y_cluster_98.sum()
+        cluster_tp_95 = y_cluster_95.sum()
+
+        cluster_positive_99 = len(e_spatial[0])
+        cluster_positive_98 = len(e_spatial_98[0])
+        cluster_positive_95 = len(e_spatial_95[0])
+        
+        pur_99 = cluster_tp_99 / cluster_positive_99
+        pur_98 = cluster_tp_98 / cluster_positive_98
+        pur_95 = cluster_tp_95 / cluster_positive_95
+
+        return pur_95, pur_98, pur_99    
 
     def validation_step(self, batch, batch_idx):
         """

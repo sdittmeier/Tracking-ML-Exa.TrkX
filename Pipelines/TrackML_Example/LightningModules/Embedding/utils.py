@@ -8,8 +8,6 @@ import scipy as sp
 import numpy as np
 
 import brevitas.nn as qnn
-from brevitas.quant import Int8Bias as BiasQuant
-
 
 """
 Ideally, we would be using FRNN and the GPU. But in the case of a user not having a GPU, or not having FRNN, we import FAISS as the 

@@ -52,6 +52,8 @@ def train(config_file="pipeline_config.yaml"):
         # track hyperparameters and run metadata
         config=metric_learning_configs
     )
+    # this should actually work
+    # metric_learning_configs.update(dict(wandb.config))
     metric_learning_configs = dict(wandb.config)
 
     logging.info(headline("a) Initialising model"))
@@ -61,7 +63,7 @@ def train(config_file="pipeline_config.yaml"):
     logging.info(headline("b) Running training" ))
 
     save_directory = os.path.join(common_configs["artifact_directory"], "metric_learning")
-    logger = WandbLogger(save_directory)
+    logger = WandbLogger(save_directory)#, project=common_configs["experiment_name"])
 
     trainer = Trainer(
         accelerator='gpu' if torch.cuda.is_available() else None,
