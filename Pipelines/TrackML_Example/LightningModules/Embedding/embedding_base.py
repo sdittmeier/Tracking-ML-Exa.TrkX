@@ -306,7 +306,7 @@ class EmbeddingBase(LightningModule):
         e_spatial_99, y_cluster_99 = self.get_truth(batch, e_spatial_99, e_bidir)
 
         _, d_99 = self.get_hinge_distance(
-            spatial, spatial, e_spatial_99.to(self.device), y_cluster_99
+            spatial, e_spatial_99.to(self.device), y_cluster_99
         )
         pur_95, pur_98, pur_99 = self.get_working_metrics(e_spatial_99, y_cluster_99, d_99, R95, R98)
 
