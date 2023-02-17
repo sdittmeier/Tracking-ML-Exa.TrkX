@@ -35,6 +35,8 @@ metric_learning_configs:
   patience: 4
   regime: [rp, hnm, norm]
   max_epochs: 30
+  l1_loss: True
+  l1_factor: 0.00005
   
   ##QNN Parameters
   quantized_network: True

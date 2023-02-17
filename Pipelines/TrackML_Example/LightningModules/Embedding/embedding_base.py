@@ -278,6 +278,14 @@ class EmbeddingBase(LightningModule):
         )
 
         loss = negative_loss + self.hparams["weight"] * positive_loss
+        if(self.hparams["l1_loss"]):
+            l1_crit = torch.nn.L1Loss(size_average=False)
+            reg_loss = 0
+            for param in self.parameters():
+                reg_loss += l1_crit(param,target=torch.zeros_like(param))
+
+            factor = self.hparams["l1_factor"]
+            loss += factor * reg_loss
 
         self.log("train_loss", loss, on_epoch=True, on_step=False)
 
