@@ -13,6 +13,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelPruning
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers import WandbLogger
 import torch
@@ -65,11 +66,23 @@ def train(config_file="pipeline_config.yaml"):
     save_directory = os.path.join(common_configs["artifact_directory"], "metric_learning")
     logger = WandbLogger(save_directory)#, project=common_configs["experiment_name"])
 
+    # placeholders
+    parameters_to_prune = []
+    apply_pruning = []
+
     trainer = Trainer(
         accelerator='gpu' if torch.cuda.is_available() else None,
         gpus=common_configs["gpus"],
         max_epochs=metric_learning_configs["max_epochs"],
-        logger=logger
+        logger=logger,
+        callbacks=[
+            ModelPruning(
+                pruning_fn="l1_unstructured",
+                parameters_to_prune= parameters_to_prune,
+                amount = metric_learning_configs["pruning_amount"],
+                apply_pruning = apply_pruning
+            )
+        ]
     )
 
     # adapt for quantization
