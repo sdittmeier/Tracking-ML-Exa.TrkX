@@ -67,8 +67,16 @@ def train(config_file="pipeline_config.yaml"):
     logger = WandbLogger(save_directory)#, project=common_configs["experiment_name"])
 
     # placeholders
-    parameters_to_prune = []
-    apply_pruning = []
+    parameters_to_prune = [(model.network[1], "weight"), (model.network[4], "weight"), (model.network[7], "weight"), (model.network[10], "weight"), (model.network[13], "weight")]
+    pruning_freq = metric_learning_configs["pruning_freq"]
+
+
+    def apply_pruning(epoch):
+        print(trainer.callback_metrics['val_loss'].cpu().numpy())   # could include feedback from validation or training loss here
+        if((epoch % pruning_freq)==(pruning_freq-1)):
+            return True
+        else:
+            return False
 
     trainer = Trainer(
         accelerator='gpu' if torch.cuda.is_available() else None,
@@ -80,7 +88,8 @@ def train(config_file="pipeline_config.yaml"):
                 pruning_fn="l1_unstructured",
                 parameters_to_prune= parameters_to_prune,
                 amount = metric_learning_configs["pruning_amount"],
-                apply_pruning = apply_pruning
+                apply_pruning = apply_pruning,
+                verbose = 2
             )
         ]
     )
@@ -100,7 +109,7 @@ def train(config_file="pipeline_config.yaml"):
         quantizers[x][0] = int(quantizers[x][0])
         quantizers[x][1] = float(quantizers[x][1])
         quantizers[x][2] = (quantizers[x][2] == ' True')
-    print(quantizers)
+#    print(quantizers)
     
     print("quantizing trainset")
     for event in model.trainset:
@@ -109,8 +118,8 @@ def train(config_file="pipeline_config.yaml"):
     
     print("quantizing valset")
     for event in model.valset:
-        event.x = quantize_features(event.x, quantizers[:3], True, fixed_point, pre_point, post_point)
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:], True, fixed_point, pre_point, post_point)
+        event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
+        event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
     
     print("quantizing testset")
     for event in model.testset:

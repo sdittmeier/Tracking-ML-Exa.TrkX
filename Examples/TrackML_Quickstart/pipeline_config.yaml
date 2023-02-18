@@ -36,7 +36,9 @@ metric_learning_configs:
   regime: [rp, hnm, norm]
   max_epochs: 30
   l1_loss: True
-  l1_factor: 0.00005
+  l1_factor: 0.0001
+  pruning_amount: 0.1
+  pruning_freq: 1
   
   ##QNN Parameters
   quantized_network: True
