@@ -35,6 +35,8 @@ def parse_args():
     add_arg("config", nargs="?", default="pipeline_config.yaml")
     return parser.parse_args()
 
+last_pruned = 0
+val_loss = []
 
 def train(config_file="pipeline_config.yaml"):
 
@@ -71,20 +73,24 @@ def train(config_file="pipeline_config.yaml"):
     pruning_freq = metric_learning_configs["pruning_freq"]
     pruning_val_loss = metric_learning_configs["pruning_val_loss"]
 
-    val_loss = []
-    last_pruned = 0
-
     def apply_pruning(epoch):
+        global last_pruned
+        global val_loss
         val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
-        if(epoch > 10):
+#        print(val_loss)
+        if(len(val_loss) > 10):
             val_loss.pop(0)
+#            print(max(val_loss))
+#            print(min(val_loss))
             if( (max(val_loss) - min(val_loss)) < pruning_val_loss):
                 last_pruned = epoch
                 logging.info(headline("Val_loss: Pruning" ))
+                val_loss=[]
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
             last_pruned = epoch
             logging.info(headline("Epoch: Pruning" ))
+            val_loss=[]
             return True
         else:
             return False
