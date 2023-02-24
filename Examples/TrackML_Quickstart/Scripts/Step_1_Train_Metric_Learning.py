@@ -69,11 +69,22 @@ def train(config_file="pipeline_config.yaml"):
     # placeholders
     parameters_to_prune = [(model.network[1], "weight"), (model.network[4], "weight"), (model.network[7], "weight"), (model.network[10], "weight"), (model.network[13], "weight")]
     pruning_freq = metric_learning_configs["pruning_freq"]
+    pruning_val_loss = metric_learning_configs["pruning_val_loss"]
 
+    val_loss = []
+    last_pruned = 0
 
     def apply_pruning(epoch):
-        print(trainer.callback_metrics['val_loss'].cpu().numpy())   # could include feedback from validation or training loss here
-        if((epoch % pruning_freq)==(pruning_freq-1)):
+        val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
+        if(epoch > 10):
+            val_loss.pop(0)
+            if( (max(val_loss) - min(val_loss)) < pruning_val_loss):
+                last_pruned = epoch
+                logging.info(headline("Val_loss: Pruning" ))
+                return True
+        if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
+            last_pruned = epoch
+            logging.info(headline("Epoch: Pruning" ))
             return True
         else:
             return False
