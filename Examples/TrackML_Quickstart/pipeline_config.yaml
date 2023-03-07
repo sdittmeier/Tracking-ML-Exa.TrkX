@@ -34,7 +34,7 @@ metric_learning_configs:
   factor: 0.7
   patience: 4
   regime: [rp, hnm, norm]
-  max_epochs: 5000
+  max_epochs: 800
   l1_loss: True
   l1_factor: 0.0001
   pruning_amount: 0.1
@@ -43,9 +43,9 @@ metric_learning_configs:
   
   ##QNN Parameters
   quantized_network: True
-  weight_bit_width_input: 6
+  weight_bit_width_input: 4
   weight_bit_width_hidden: 2
-  weight_bit_width_output: 6
+  weight_bit_width_output: 4
   activation_qnn: True ## telling the network to use quantReLU()
   activation_bit_width_input: 8
   activation_bit_width_hidden: 6
