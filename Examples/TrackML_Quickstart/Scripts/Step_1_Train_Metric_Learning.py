@@ -27,6 +27,8 @@ import csv
 
 import wandb
 
+from brevitas.export.onnx.generic.manager import BrevitasONNXManager
+
 
 def parse_args():
     """Parse command line arguments."""
@@ -128,21 +130,31 @@ def train(config_file="pipeline_config.yaml"):
         quantizers[x][2] = (quantizers[x][2] == ' True')
 #    print(quantizers)
     
+    ev_size = 0
     print("quantizing trainset")
     for event in model.trainset:
+        ev_size=max(ev_size,event.x.size(dim=0))
         event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
         event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
+
     
     print("quantizing valset")
     for event in model.valset:
+        ev_size=max(ev_size,event.x.size(dim=0))
         event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
         event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
     
     print("quantizing testset")
     for event in model.testset:
+        ev_size=max(ev_size,event.x.size(dim=0))
         event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
         event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
 
+    print(ev_size)
+
+    input_shape = (1, 12, 512)#ev_size) # (batchsize can always be 1, channel (node features) = 3 + 9, ev_size for maximum eventsize)
+    export_onnx_path = "test_brevitas_onnx.onnx"
+    BrevitasONNXManager.export(model, input_shape, export_onnx_path)
 
     trainer.fit(model)
 
@@ -150,6 +162,8 @@ def train(config_file="pipeline_config.yaml"):
 
     os.makedirs(save_directory, exist_ok=True)
     trainer.save_checkpoint(os.path.join(save_directory, common_configs["experiment_name"]+".ckpt"))
+
+
 
     wandb.finish()
     return trainer, model
