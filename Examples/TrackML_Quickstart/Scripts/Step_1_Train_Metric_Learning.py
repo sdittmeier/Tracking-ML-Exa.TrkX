@@ -22,7 +22,8 @@ sys.path.append("../../")
 
 from Pipelines.TrackML_Example.LightningModules.Embedding.Models.layerless_embedding import LayerlessEmbedding
 from utils.convenience_utils import headline
-from utils.quantization_utils import learn_quantization, quantize_features
+sys.path.append("../../")
+from Pipelines.TrackML_Example.LightningModules.Embedding.quantization_utils import quantize_features
 import csv
 
 import wandb
@@ -79,11 +80,11 @@ def train(config_file="pipeline_config.yaml"):
         global last_pruned
         global val_loss
         val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
-#        print(val_loss)
+#        logging.info(val_loss)
         if(len(val_loss) > 10):
             val_loss.pop(0)
-#            print(max(val_loss))
-#            print(min(val_loss))
+#            logging.info(max(val_loss))
+#            logging.info(min(val_loss))
             if( (max(val_loss) - min(val_loss)) < pruning_val_loss):
                 last_pruned = epoch
                 logging.info(headline("Val_loss: Pruning" ))
@@ -120,35 +121,25 @@ def train(config_file="pipeline_config.yaml"):
     fixed_point = metric_learning_configs["input_quantization"]
     pre_point = metric_learning_configs["integer_part"]
     post_point = metric_learning_configs["fractional_part"]
-#    quantizers = learn_quantization(model.trainset, threshold)
-    with open('testquantization.txt', 'r') as f:
-        reader = csv.reader(f)
-        quantizers = list(reader)
-    for x in range(len(quantizers)):
-        quantizers[x][0] = int(quantizers[x][0])
-        quantizers[x][1] = float(quantizers[x][1])
-        quantizers[x][2] = (quantizers[x][2] == ' True')
-#    print(quantizers)
-    
+
     ev_size = 0
-    print("quantizing trainset")
+    logging.info("quantizing trainset")
     for event in model.trainset:
         ev_size=max(ev_size,event.x.size(dim=0))
-        event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
+        event.x = quantize_features(event.x, False, fixed_point, pre_point, post_point)
+        event.cell_data = quantize_features(event.cell_data, False, fixed_point, pre_point, post_point)
 
-    
-    print("quantizing valset")
+    logging.info("quantizing valset")
     for event in model.valset:
         ev_size=max(ev_size,event.x.size(dim=0))
-        event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
+        event.x = quantize_features(event.x, False, fixed_point, pre_point, post_point)
+        event.cell_data = quantize_features(event.cell_data, False, fixed_point, pre_point, post_point)
     
-    print("quantizing testset")
+    logging.info("quantizing testset")
     for event in model.testset:
         ev_size=max(ev_size,event.x.size(dim=0))
-        event.x = quantize_features(event.x, quantizers[:3], False, fixed_point, pre_point, post_point)
-        event.cell_data = quantize_features(event.cell_data, quantizers[3:], False, fixed_point, pre_point, post_point)
+        event.x = quantize_features(event.x, False, fixed_point, pre_point, post_point)
+        event.cell_data = quantize_features(event.cell_data, False, fixed_point, pre_point, post_point)
 
     print(ev_size)
 
