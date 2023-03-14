@@ -29,6 +29,8 @@ import csv
 import wandb
 
 from brevitas.export.onnx.generic.manager import BrevitasONNXManager
+from brevitas.quant_tensor import QuantTensor
+import numpy as np
 
 
 def parse_args():
@@ -125,27 +127,47 @@ def train(config_file="pipeline_config.yaml"):
     ev_size = 0
     logging.info("quantizing trainset")
     for event in model.trainset:
+        if(event.x.size(dim=0) > ev_size):
+            max_event = event
         ev_size=max(ev_size,event.x.size(dim=0))
+#        print(event.x.size())
+#        print(event.cell_data.size())
         event.x = quantize_features(event.x, False, fixed_point, pre_point, post_point)
         event.cell_data = quantize_features(event.cell_data, False, fixed_point, pre_point, post_point)
 
     logging.info("quantizing valset")
-    for event in model.valset:
+    for event in model.valset:        
+        if(event.x.size(dim=0) > ev_size):
+            max_event = event
         ev_size=max(ev_size,event.x.size(dim=0))
         event.x = quantize_features(event.x, False, fixed_point, pre_point, post_point)
         event.cell_data = quantize_features(event.cell_data, False, fixed_point, pre_point, post_point)
     
     logging.info("quantizing testset")
     for event in model.testset:
+        if(event.x.size(dim=0) > ev_size):
+            max_event = event
         ev_size=max(ev_size,event.x.size(dim=0))
         event.x = quantize_features(event.x, False, fixed_point, pre_point, post_point)
         event.cell_data = quantize_features(event.cell_data, False, fixed_point, pre_point, post_point)
 
-    print(ev_size)
+#    print(ev_size)
 
-    input_shape = (1, 12, 512)#ev_size) # (batchsize can always be 1, channel (node features) = 3 + 9, ev_size for maximum eventsize)
+#    input_shape = (ev_size, 12) # (batchsize can always be 1, channel (node features) = 3 + 9, ev_size for maximum eventsize)
+    input_tensor = torch.cat(
+                [max_event.cell_data[:, : metric_learning_configs["cell_channels"]], max_event.x], axis=-1
+            )
+    print(input_tensor)
+    print(input_tensor.size())
+    input_bitwidth = pre_point + post_point + 1 # for sign +1 !
+    scale_array = np.full((1,12),1./(input_bitwidth)) #12 features
+    scale_tensor = torch.from_numpy(scale_array)
+    zp = torch.tensor(0.0)
+    signed = True
+    input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
+
     export_onnx_path = "test_brevitas_onnx.onnx"
-    BrevitasONNXManager.export(model, input_shape, export_onnx_path)
+    BrevitasONNXManager.export(model, export_path = export_onnx_path, input_t = input_quant_tensor, )
 
     trainer.fit(model)
 
