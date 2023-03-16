@@ -165,9 +165,7 @@ def train(config_file="pipeline_config.yaml"):
     zp = torch.tensor(0.0)
     signed = True
     input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
-
-    export_onnx_path = "test_brevitas_onnx.onnx"
-    BrevitasONNXManager.export(model, export_path = export_onnx_path, input_t = input_quant_tensor, )
+    export_onnx_path = "test_brevitas_onnx_no_reLU_no_activation.onnx"
 
     trainer.fit(model)
 
@@ -176,8 +174,7 @@ def train(config_file="pipeline_config.yaml"):
     os.makedirs(save_directory, exist_ok=True)
     trainer.save_checkpoint(os.path.join(save_directory, common_configs["experiment_name"]+".ckpt"))
 
-
-
+    BrevitasONNXManager.export(model, export_path = export_onnx_path, input_t = input_quant_tensor)
     wandb.finish()
     return trainer, model
 
