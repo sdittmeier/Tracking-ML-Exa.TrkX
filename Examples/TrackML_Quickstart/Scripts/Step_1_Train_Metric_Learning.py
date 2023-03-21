@@ -125,7 +125,6 @@ def train(config_file="pipeline_config.yaml"):
     # adapt for quantization
     model.setup(stage="fit") # This is needed for the model to build its dataset(s)
 
-    threshold = 1e-6 # relative threshold, to account for different max values per feature
     fixed_point = metric_learning_configs["input_quantization"]
     pre_point = metric_learning_configs["integer_part"]
     post_point = metric_learning_configs["fractional_part"]
@@ -171,7 +170,6 @@ def train(config_file="pipeline_config.yaml"):
     zp = torch.tensor(0.0)
     signed = True
     input_quant_tensor = QuantTensor(input_tensor.to('cuda:0'), scale_tensor, zp, input_bitwidth, signed, training = False)
-    export_onnx_path = "pruning_final.onnx"
 
     trainer.fit(model)
 
@@ -179,7 +177,8 @@ def train(config_file="pipeline_config.yaml"):
 
     os.makedirs(save_directory, exist_ok=True)
     trainer.save_checkpoint(os.path.join(save_directory, common_configs["experiment_name"]+".ckpt"))
-
+    
+    export_onnx_path = "pruning_final.onnx"
     BrevitasONNXManager.export(model, export_path = export_onnx_path, input_t = input_quant_tensor)
     wandb.finish()
     return trainer, model
