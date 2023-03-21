@@ -29,6 +29,7 @@ import csv
 import wandb
 
 from brevitas.export.onnx.generic.manager import BrevitasONNXManager
+from qonnx.util.inference_cost import inference_cost
 from brevitas.quant_tensor import QuantTensor
 import numpy as np
 
@@ -79,23 +80,28 @@ def train(config_file="pipeline_config.yaml"):
     pruning_val_loss = metric_learning_configs["pruning_val_loss"]
 
     def apply_pruning(epoch):
+        if(not metric_learning_configs["pruning_allow"]):
+            return False
         global last_pruned
-        global val_loss
+        global val_loss        
+        export_path = f"pruning_{epoch}.onnx"
+        export_json = f"pruning_{epoch}.json"
         val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
-#        logging.info(val_loss)
         if(len(val_loss) > 10):
             val_loss.pop(0)
-#            logging.info(max(val_loss))
-#            logging.info(min(val_loss))
             if( (max(val_loss) - min(val_loss)) < pruning_val_loss):
                 last_pruned = epoch
                 logging.info(headline("Val_loss: Pruning" ))
                 val_loss=[]
+                BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
+                inference_cost(export_path, output_json = export_json)
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
             last_pruned = epoch
             logging.info(headline("Epoch: Pruning" ))
             val_loss=[]
+            BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
+            inference_cost(export_path, output_json = export_json)
             return True
         else:
             return False
@@ -107,11 +113,11 @@ def train(config_file="pipeline_config.yaml"):
         logger=logger,
         callbacks=[
             ModelPruning(
-                pruning_fn="l1_unstructured",
-                parameters_to_prune= parameters_to_prune,
+                pruning_fn = metric_learning_configs["pruning_fn"],
+                parameters_to_prune = parameters_to_prune,
                 amount = metric_learning_configs["pruning_amount"],
                 apply_pruning = apply_pruning,
-                verbose = 2
+                verbose = 1 #2 for per-layer sparsity, #1 for overall sparsity
             )
         ]
     )
@@ -157,15 +163,15 @@ def train(config_file="pipeline_config.yaml"):
     input_tensor = torch.cat(
                 [max_event.cell_data[:, : metric_learning_configs["cell_channels"]], max_event.x], axis=-1
             )
-    print(input_tensor)
-    print(input_tensor.size())
+#    print(input_tensor)
+#    print(input_tensor.size())
     input_bitwidth = pre_point + post_point + 1 # for sign +1 !
     scale_array = np.full((1,12),1./(input_bitwidth)) #12 features
     scale_tensor = torch.from_numpy(scale_array)
     zp = torch.tensor(0.0)
     signed = True
-    input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
-    export_onnx_path = "test_brevitas_onnx_no_reLU_no_activation.onnx"
+    input_quant_tensor = QuantTensor(input_tensor.to('cuda:0'), scale_tensor, zp, input_bitwidth, signed, training = False)
+    export_onnx_path = "pruning_final.onnx"
 
     trainer.fit(model)
 
