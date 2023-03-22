@@ -29,6 +29,7 @@ import csv
 import wandb
 
 from brevitas.export.onnx.generic.manager import BrevitasONNXManager
+from qonnx.util.cleanup import cleanup
 from qonnx.util.inference_cost import inference_cost
 from brevitas.quant_tensor import QuantTensor
 import numpy as np
@@ -101,8 +102,9 @@ def train(config_file="pipeline_config.yaml"):
         if(not metric_learning_configs["pruning_allow"]):
             return False
         global last_pruned
-        global val_loss        
+        global val_loss
         export_path = f"pruning_{epoch}.onnx"
+        export_path_cleanup = f"pruning_{epoch}_clean.onnx"
         export_json = f"pruning_{epoch}.json"
         val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
         if(len(val_loss) > 10):
@@ -116,9 +118,10 @@ def train(config_file="pipeline_config.yaml"):
                 if(last_pruned > 0):
                     for paras in parameters_to_prune_copy:
                         prune.remove(paras[0], name = 'weight')
-                BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
+                BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
                 del model_copy
-                inference_cost(export_path, output_json = export_json, discount_sparsity = True)
+                cleanup(export_path, out_file=export_path_cleanup)
+                inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
             last_pruned = epoch
@@ -129,11 +132,12 @@ def train(config_file="pipeline_config.yaml"):
             if(last_pruned > 0):
                 for paras in parameters_to_prune_copy:
                     prune.remove(paras[0], name = 'weight')
-            BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
+            BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
             print(model_copy.network[4].weight)
             print(model.network[4].weight)
             del model_copy
-            inference_cost(export_path, output_json = export_json, discount_sparsity = True)
+            cleanup(export_path, out_file=export_path_cleanup)
+            inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
             return True
         else:
             return False
