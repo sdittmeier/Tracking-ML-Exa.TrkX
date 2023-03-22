@@ -33,6 +33,12 @@ from qonnx.util.inference_cost import inference_cost
 from brevitas.quant_tensor import QuantTensor
 import numpy as np
 
+import qonnx.core.onnx_exec as oxe
+from qonnx.core.modelwrapper import ModelWrapper
+import onnx.shape_inference as si
+import torch.nn.utils.prune as prune
+
+import copy
 
 def parse_args():
     """Parse command line arguments."""
@@ -43,6 +49,18 @@ def parse_args():
 
 last_pruned = 0
 val_loss = []
+
+# from https://github.com/fastmachinelearning/qonnx/blob/main/tests/transformation/test_channelslast.py#L75
+def get_golden_in_and_output(onnx_file, input_tensor): #, input_shape):
+    #input_tensor = input_tensor.cpu().detach().numpy().astype(np.float32)
+#    input_tensor = input_tensor.reshape(input_shape)
+    model = ModelWrapper(onnx_file)
+    model = ModelWrapper(si.infer_shapes(model.model))
+    input_dict = {model.graph.input[0].name: input_tensor}
+    golden_output_dict = oxe.execute_onnx(model, input_dict)
+    golden_result = golden_output_dict[model.graph.output[0].name]
+
+    return golden_result
 
 def train(config_file="pipeline_config.yaml"):
 
@@ -93,15 +111,29 @@ def train(config_file="pipeline_config.yaml"):
                 last_pruned = epoch
                 logging.info(headline("Val_loss: Pruning" ))
                 val_loss=[]
-                BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
-                inference_cost(export_path, output_json = export_json)
+                model_copy = copy.deepcopy(model)
+                parameters_to_prune_copy = [(model_copy.network[1], "weight"), (model_copy.network[4], "weight"), (model_copy.network[7], "weight"), (model_copy.network[10], "weight"), (model_copy.network[13], "weight")]
+                if(last_pruned > 0):
+                    for paras in parameters_to_prune_copy:
+                        prune.remove(paras[0], name = 'weight')
+                BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
+                del model_copy
+                inference_cost(export_path, output_json = export_json, discount_sparsity = True)
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
             last_pruned = epoch
             logging.info(headline("Epoch: Pruning" ))
             val_loss=[]
-            BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
-            inference_cost(export_path, output_json = export_json)
+            model_copy = copy.deepcopy(model)
+            parameters_to_prune_copy = [(model_copy.network[1], "weight"), (model_copy.network[4], "weight"), (model_copy.network[7], "weight"), (model_copy.network[10], "weight"), (model_copy.network[13], "weight")]
+            if(last_pruned > 0):
+                for paras in parameters_to_prune_copy:
+                    prune.remove(paras[0], name = 'weight')
+            BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor) # exporting the model to calculate BOPs just before we do pruning
+            print(model_copy.network[4].weight)
+            print(model.network[4].weight)
+            del model_copy
+            inference_cost(export_path, output_json = export_json, discount_sparsity = True)
             return True
         else:
             return False
@@ -179,8 +211,13 @@ def train(config_file="pipeline_config.yaml"):
     trainer.save_checkpoint(os.path.join(save_directory, common_configs["experiment_name"]+".ckpt"))
     
     export_onnx_path = "pruning_final.onnx"
+    input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
     BrevitasONNXManager.export(model, export_path = export_onnx_path, input_t = input_quant_tensor)
-    wandb.finish()
+
+#    input_shape = (ev_size,12)
+#    get_golden_in_and_output(export_onnx_path, input_quant_tensor)#, input_shape)
+
+#    wandb.finish()
     return trainer, model
 
 
