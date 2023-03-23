@@ -107,10 +107,9 @@ def train(config_file="pipeline_config.yaml"):
         export_path_cleanup = f"pruning_{epoch}_clean.onnx"
         export_json = f"pruning_{epoch}.json"
         val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
-        if(len(val_loss) > 10):
+        if(len(val_loss) > 9):
             val_loss.pop(0)
             if( (max(val_loss) - min(val_loss)) < pruning_val_loss):
-                last_pruned = epoch
                 logging.info(headline("Val_loss: Pruning" ))
                 val_loss=[]
                 model_copy = copy.deepcopy(model)
@@ -122,9 +121,9 @@ def train(config_file="pipeline_config.yaml"):
                 del model_copy
                 cleanup(export_path, out_file=export_path_cleanup)
                 inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
+                last_pruned = epoch
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
-            last_pruned = epoch
             logging.info(headline("Epoch: Pruning" ))
             val_loss=[]
             model_copy = copy.deepcopy(model)
@@ -133,11 +132,10 @@ def train(config_file="pipeline_config.yaml"):
                 for paras in parameters_to_prune_copy:
                     prune.remove(paras[0], name = 'weight')
             BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
-            print(model_copy.network[4].weight)
-            print(model.network[4].weight)
             del model_copy
             cleanup(export_path, out_file=export_path_cleanup)
             inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
+            last_pruned = epoch
             return True
         else:
             return False
@@ -214,9 +212,13 @@ def train(config_file="pipeline_config.yaml"):
     os.makedirs(save_directory, exist_ok=True)
     trainer.save_checkpoint(os.path.join(save_directory, common_configs["experiment_name"]+".ckpt"))
     
-    export_onnx_path = "pruning_final.onnx"
+    export_path = "pruning_final.onnx"
+    export_path_cleanup = f"pruning_final_clean.onnx"
+    export_json = f"pruning_final.json"
     input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
-    BrevitasONNXManager.export(model, export_path = export_onnx_path, input_t = input_quant_tensor)
+    BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor)
+    cleanup(export_path, out_file=export_path_cleanup)
+    inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
 
 #    input_shape = (ev_size,12)
 #    get_golden_in_and_output(export_onnx_path, input_quant_tensor)#, input_shape)
