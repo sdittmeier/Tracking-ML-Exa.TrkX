@@ -48,7 +48,7 @@ def parse_args():
     add_arg("config", nargs="?", default="pipeline_config.yaml")
     return parser.parse_args()
 
-last_pruned = 0
+last_pruned = -1
 val_loss = []
 
 # from https://github.com/fastmachinelearning/qonnx/blob/main/tests/transformation/test_channelslast.py#L75
@@ -86,7 +86,7 @@ def train(config_file="pipeline_config.yaml"):
 
     logging.info(headline("a) Initialising model"))
 
-    model = LayerlessEmbedding(metric_learning_configs)
+    model = LayerlessEmbedding(metric_learning_configs, [])
 
     logging.info(headline("b) Running training" ))
 
@@ -114,13 +114,14 @@ def train(config_file="pipeline_config.yaml"):
                 val_loss=[]
                 model_copy = copy.deepcopy(model)
                 parameters_to_prune_copy = [(model_copy.network[1], "weight"), (model_copy.network[4], "weight"), (model_copy.network[7], "weight"), (model_copy.network[10], "weight"), (model_copy.network[13], "weight")]
-                if(last_pruned > 0):
+                if(last_pruned > -1):
                     for paras in parameters_to_prune_copy:
                         prune.remove(paras[0], name = 'weight')
                 BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
                 del model_copy
                 cleanup(export_path, out_file=export_path_cleanup)
-                inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
+                inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
+                model.bops_memory= inf_cost
                 last_pruned = epoch
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
@@ -128,13 +129,14 @@ def train(config_file="pipeline_config.yaml"):
             val_loss=[]
             model_copy = copy.deepcopy(model)
             parameters_to_prune_copy = [(model_copy.network[1], "weight"), (model_copy.network[4], "weight"), (model_copy.network[7], "weight"), (model_copy.network[10], "weight"), (model_copy.network[13], "weight")]
-            if(last_pruned > 0):
+            if(last_pruned > -1):
                 for paras in parameters_to_prune_copy:
                     prune.remove(paras[0], name = 'weight')
             BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
             del model_copy
             cleanup(export_path, out_file=export_path_cleanup)
-            inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
+            inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
+            model.bops_memory= inf_cost
             last_pruned = epoch
             return True
         else:
@@ -203,6 +205,15 @@ def train(config_file="pipeline_config.yaml"):
     scale_tensor = torch.from_numpy(scale_array)
     zp = torch.tensor(0.0)
     signed = True
+    input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
+
+    export_path = f"pruning_init.onnx"
+    export_path_cleanup = f"pruning_init_clean.onnx"
+    export_json = f"pruning_init.json"
+    BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
+    cleanup(export_path, out_file=export_path_cleanup)
+    inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
+    model.bops_memory= inf_cost
     input_quant_tensor = QuantTensor(input_tensor.to('cuda:0'), scale_tensor, zp, input_bitwidth, signed, training = False)
 
     trainer.fit(model)
@@ -218,7 +229,8 @@ def train(config_file="pipeline_config.yaml"):
     input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
     BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor)
     cleanup(export_path, out_file=export_path_cleanup)
-    inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True)
+    inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
+    model.set_bops_memory(inf_cost)
 
 #    input_shape = (ev_size,12)
 #    get_golden_in_and_output(export_onnx_path, input_quant_tensor)#, input_shape)
