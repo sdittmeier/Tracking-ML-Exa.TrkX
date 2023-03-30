@@ -1,9 +1,10 @@
 common_configs:
-  experiment_name: act_10_W_828
-  artifact_directory: IWBA_0101_variable_weights
+  experiment_name: reference
+  artifact_directory: artifacts/chep
+  wandb_project: chep_MetricLearning
   gpus: 1
 
-  clear_directories: Truel
+  clear_directories: True
 
 metric_learning_configs:
   # Dataset parameters
@@ -20,7 +21,7 @@ metric_learning_configs:
   emb_hidden: 512
   nb_layer: 4
   emb_dim: 12
-  activation: Tanh
+  activation: ReLU
   weight: 2
   randomisation: 2
   points_per_batch: 100000
@@ -34,17 +35,17 @@ metric_learning_configs:
   factor: 0.7
   patience: 4
   regime: [rp, hnm, norm]
-  max_epochs: 800
-  l1_loss: True
+  max_epochs: 180
+  l1_loss: False
   l1_factor: 0.0001
-  pruning_allow: True
+  pruning_allow: False
   pruning_amount: 0.1
   pruning_freq: 180
   pruning_val_loss: 0.000002
   pruning_fn: "l1_unstructured"
   
   ##QNN Parameters
-  quantized_network: True
+  quantized_network: False
   weight_bit_width_input: 6
   weight_bit_width_hidden: 2
   weight_bit_width_output: 6
@@ -55,7 +56,7 @@ metric_learning_configs:
   output_activation: False
   output_activation_quantization: False
   # Input quantization Parameters, only using fixed point representation
-  input_quantization: True # also enables QuantIdentity
+  input_quantization: False # also enables QuantIdentity
   integer_part: 1
   fractional_part: 8
   

@@ -75,7 +75,7 @@ def train(config_file="pipeline_config.yaml"):
 
     wandb.init(
         # set the wandb project where this run will be logged
-        project="qat_trackml_seb",
+        project=common_configs["wandb_project"],
         
         # track hyperparameters and run metadata
         config=metric_learning_configs
@@ -91,56 +91,60 @@ def train(config_file="pipeline_config.yaml"):
     logging.info(headline("b) Running training" ))
 
     save_directory = os.path.join(common_configs["artifact_directory"], "metric_learning")
-    logger = WandbLogger(save_directory)#, project=common_configs["experiment_name"])
+    logger = [WandbLogger(save_directory), CSVLogger(save_directory, name=common_configs["experiment_name"])]
 
+    print(model)
     # placeholders
-    parameters_to_prune = [(model.network[1], "weight"), (model.network[4], "weight"), (model.network[7], "weight"), (model.network[10], "weight"), (model.network[13], "weight")]
+    if(metric_learning_configs["quantized_network"]):
+        parameters_to_prune = [(model.network[1], "weight"), (model.network[4], "weight"), (model.network[7], "weight"), (model.network[10], "weight"), (model.network[13], "weight")]
+    else:
+        parameters_to_prune = [(model.network[0], "weight"), (model.network[3], "weight"), (model.network[6], "weight"), (model.network[9], "weight"), (model.network[12], "weight")]
     pruning_freq = metric_learning_configs["pruning_freq"]
     pruning_val_loss = metric_learning_configs["pruning_val_loss"]
 
     def apply_pruning(epoch):
-        if(not metric_learning_configs["pruning_allow"]):
-            return False
         global last_pruned
         global val_loss
-        export_path = f"pruning_{epoch}.onnx"
-        export_path_cleanup = f"pruning_{epoch}_clean.onnx"
-        export_json = f"pruning_{epoch}.json"
+        export_path = f"{save_directory}/pruning_{epoch}.onnx"
+        export_path_cleanup = f"{save_directory}/pruning_{epoch}_clean.onnx"
+        export_json = f"{save_directory}/pruning_{epoch}.json"
+
+        model_copy = copy.deepcopy(model)
+        if(metric_learning_configs["quantized_network"]):
+            parameters_to_prune_copy = [(model_copy.network[1], "weight"), (model_copy.network[4], "weight"), (model_copy.network[7], "weight"), (model_copy.network[10], "weight"), (model_copy.network[13], "weight")]
+        else:
+            parameters_to_prune_copy = [(model_copy.network[0], "weight"), (model_copy.network[3], "weight"), (model_copy.network[6], "weight"), (model_copy.network[9], "weight"), (model_copy.network[12], "weight")]
+        if(last_pruned > -1):
+            for paras in parameters_to_prune_copy:
+                prune.remove(paras[0], name = 'weight')
+        BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
+        del model_copy
+        cleanup(export_path, out_file=export_path_cleanup)
+        inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
+        model.bops_memory= inf_cost
+
+        if(not metric_learning_configs["pruning_allow"]):
+            return False
+        
         val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
-        if(len(val_loss) > 9):
+        if(len(val_loss) > 4):  # reduced number to 5 in a row
             val_loss.pop(0)
             if( (max(val_loss) - min(val_loss)) < pruning_val_loss):
                 logging.info(headline("Val_loss: Pruning" ))
                 val_loss=[]
-                model_copy = copy.deepcopy(model)
-                parameters_to_prune_copy = [(model_copy.network[1], "weight"), (model_copy.network[4], "weight"), (model_copy.network[7], "weight"), (model_copy.network[10], "weight"), (model_copy.network[13], "weight")]
-                if(last_pruned > -1):
-                    for paras in parameters_to_prune_copy:
-                        prune.remove(paras[0], name = 'weight')
-                BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
-                del model_copy
-                cleanup(export_path, out_file=export_path_cleanup)
-                inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
-                model.bops_memory= inf_cost
                 last_pruned = epoch
+                model.pruned = True
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
             logging.info(headline("Epoch: Pruning" ))
             val_loss=[]
-            model_copy = copy.deepcopy(model)
-            parameters_to_prune_copy = [(model_copy.network[1], "weight"), (model_copy.network[4], "weight"), (model_copy.network[7], "weight"), (model_copy.network[10], "weight"), (model_copy.network[13], "weight")]
-            if(last_pruned > -1):
-                for paras in parameters_to_prune_copy:
-                    prune.remove(paras[0], name = 'weight')
-            BrevitasONNXManager.export(model_copy, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
-            del model_copy
-            cleanup(export_path, out_file=export_path_cleanup)
-            inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
-            model.bops_memory= inf_cost
             last_pruned = epoch
+            model.pruned = True
             return True
         else:
+            model.pruned = False
             return False
+        
 
     trainer = Trainer(
         accelerator='gpu' if torch.cuda.is_available() else None,
@@ -205,16 +209,38 @@ def train(config_file="pipeline_config.yaml"):
     scale_tensor = torch.from_numpy(scale_array)
     zp = torch.tensor(0.0)
     signed = True
-    input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
+    
+    if(metric_learning_configs["quantized_network"]):    
+        input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
+    else:
+        input_quant_tensor = input_tensor
 
-    export_path = f"pruning_init.onnx"
-    export_path_cleanup = f"pruning_init_clean.onnx"
-    export_json = f"pruning_init.json"
+
+    export_path = f"{save_directory}/pruning_init.onnx"
+    export_path_cleanup = f"{save_directory}/pruning_init_clean.onnx"
+    export_json = f"{save_directory}/pruning_init.json"
     BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
     cleanup(export_path, out_file=export_path_cleanup)
     inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
     model.bops_memory= inf_cost
-    input_quant_tensor = QuantTensor(input_tensor.to('cuda:0'), scale_tensor, zp, input_bitwidth, signed, training = False)
+
+    export_path = f"{save_directory}/pruning_init_small.onnx"
+    export_path_cleanup = f"{save_directory}/pruning_init_small_clean.onnx"
+    export_json = f"{save_directory}/pruning_init_small.json"
+    input_tensor = input_tensor[0:1,:]    
+    if(metric_learning_configs["quantized_network"]):    
+        input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
+    else:
+        input_quant_tensor = input_tensor
+    BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor, export_params="True") # exporting the model to calculate BOPs just before we do pruning
+    cleanup(export_path, out_file=export_path_cleanup)
+    inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
+    model.bops_memory= inf_cost
+    if(metric_learning_configs["quantized_network"]):    
+        input_quant_tensor = QuantTensor(input_tensor.to('cuda:0'), scale_tensor, zp, input_bitwidth, signed, training = False)
+    else:
+        input_quant_tensor = input_tensor.to('cuda:0')
+
 
     trainer.fit(model)
 
@@ -222,15 +248,18 @@ def train(config_file="pipeline_config.yaml"):
 
     os.makedirs(save_directory, exist_ok=True)
     trainer.save_checkpoint(os.path.join(save_directory, common_configs["experiment_name"]+".ckpt"))
-    
-    export_path = "pruning_final.onnx"
-    export_path_cleanup = f"pruning_final_clean.onnx"
-    export_json = f"pruning_final.json"
-    input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
+
+    if(metric_learning_configs["quantized_network"]):    
+        input_quant_tensor = QuantTensor(input_tensor, scale_tensor, zp, input_bitwidth, signed, training = False)
+    else:
+        input_quant_tensor = input_tensor
+    export_path = f"{save_directory}/pruning_final.onnx"
+    export_path_cleanup = f"{save_directory}/pruning_final_clean.onnx"
+    export_json = f"{save_directory}/pruning_final.json"
     BrevitasONNXManager.export(model, export_path = export_path, input_t = input_quant_tensor)
     cleanup(export_path, out_file=export_path_cleanup)
     inf_cost = inference_cost(export_path_cleanup, output_json = export_json, discount_sparsity = True) # hacked into qonnx to return results
-    model.set_bops_memory(inf_cost)
+    model.bops_memory = inf_cost
 
 #    input_shape = (ev_size,12)
 #    get_golden_in_and_output(export_onnx_path, input_quant_tensor)#, input_shape)

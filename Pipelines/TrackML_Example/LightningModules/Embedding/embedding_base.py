@@ -33,13 +33,14 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class EmbeddingBase(LightningModule):
-    def __init__(self, hparams, bops_memory):
+    def __init__(self, hparams, bops_memory, pruned):
         super().__init__()
         """
         Initialise the Lightning Module that can scan over different embedding training regimes
         """
         self.save_hyperparameters(hparams)
         self.bops_memory = bops_memory
+        self.pruned = pruned
 
     def setup(self, stage):
         self.trainset, self.valset, self.testset = split_datasets(**self.hparams)
@@ -331,7 +332,7 @@ class EmbeddingBase(LightningModule):
         if log:
             current_lr = self.optimizers().param_groups[0]["lr"]
             self.log_dict(
-                {"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr, "R95": R95, "R98": R98, "R99": R99, "pur_95": pur_95, "pur_98": pur_98, "pur_99": pur_99, "total_bops": self.bops_memory["total_bops"], "total_mem_w_bits": self.bops_memory["total_mem_w_bits"], "total_mem_o_bits": self.bops_memory["total_mem_o_bits"]},
+                {"val_loss": loss, "eff": eff, "pur": pur, "current_lr": current_lr, "R95": R95, "R98": R98, "R99": R99, "pur_95": pur_95, "pur_98": pur_98, "pur_99": pur_99, "total_bops": self.bops_memory["total_bops"], "total_mem_w_bits": self.bops_memory["total_mem_w_bits"], "total_mem_o_bits": self.bops_memory["total_mem_o_bits"], "pruned": self.pruned},
                 on_epoch=True,
                 on_step=False
             )
