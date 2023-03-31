@@ -33,14 +33,14 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class EmbeddingBase(LightningModule):
-    def __init__(self, hparams, bops_memory, pruned):
+    def __init__(self, hparams, bops_memory):
         super().__init__()
         """
         Initialise the Lightning Module that can scan over different embedding training regimes
         """
         self.save_hyperparameters(hparams)
         self.bops_memory = bops_memory
-        self.pruned = pruned
+        self.pruned = 0
 
     def setup(self, stage):
         self.trainset, self.valset, self.testset = split_datasets(**self.hparams)

@@ -18,8 +18,8 @@ from ..utils import graph_intersection, make_mlp,make_quantized_mlp
 
 
 class LayerlessEmbedding(EmbeddingBase):
-    def __init__(self, hparams, bops_memory, pruned = False):
-        super().__init__(hparams, bops_memory, pruned)
+    def __init__(self, hparams, bops_memory):
+        super().__init__(hparams, bops_memory)
         """
         Initialise the Lightning Module that can scan over different embedding training regimes
         """

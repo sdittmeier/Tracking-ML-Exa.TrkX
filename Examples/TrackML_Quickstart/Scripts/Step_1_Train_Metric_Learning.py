@@ -133,16 +133,15 @@ def train(config_file="pipeline_config.yaml"):
                 logging.info(headline("Val_loss: Pruning" ))
                 val_loss=[]
                 last_pruned = epoch
-                model.pruned = True
+                model.pruned = model.pruned + 1
                 return True
         if(((epoch-last_pruned) % pruning_freq)==(pruning_freq-1)):
             logging.info(headline("Epoch: Pruning" ))
             val_loss=[]
             last_pruned = epoch
-            model.pruned = True
+            model.pruned = model.pruned + 1
             return True
         else:
-            model.pruned = False
             return False
         
 
@@ -157,6 +156,10 @@ def train(config_file="pipeline_config.yaml"):
                 parameters_to_prune = parameters_to_prune,
                 amount = metric_learning_configs["pruning_amount"],
                 apply_pruning = apply_pruning,
+                # settings below only for structured!
+#                pruning_dim = metric_learning_configs["pruning_dim"],
+#                pruning_norm = metric_learning_configs["pruning_norm"],
+#                use_global_unstructured = metric_learning_configs["use_global_unstructured"],
                 verbose = 1 #2 for per-layer sparsity, #1 for overall sparsity
             )
         ]

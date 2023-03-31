@@ -385,13 +385,15 @@ def make_mlp(
     for i in range(n_layers - 1):
         layers.append(nn.Linear(sizes[i], sizes[i + 1],bias  = False))
         if layer_norm:
-            layers.append(nn.LayerNorm(sizes[i + 1]))
+            #layers.append(nn.LayerNorm(sizes[i + 1]))
+            layers.append(nn.BatchNorm1d(sizes[i + 1]))
         layers.append(hidden_activation())
     # Final layer
     layers.append(nn.Linear(sizes[-2], sizes[-1],bias = False))
     if output_activation is not None:
         if layer_norm:
-            layers.append(LayerNorm(sizes[-1]))
+            #layers.append(nn.LayerNorm(sizes[-1]))
+            layers.append(nn.BatchNorm1d(sizes[i + 1]))
         layers.append(output_activation())
     return nn.Sequential(*layers)
 
