@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelPruning
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers import WandbLogger
 import torch
@@ -144,7 +145,6 @@ def train(config_file="pipeline_config.yaml"):
         else:
             return False
         
-
     trainer = Trainer(
         accelerator='gpu' if torch.cuda.is_available() else None,
         gpus=common_configs["gpus"],
@@ -161,7 +161,8 @@ def train(config_file="pipeline_config.yaml"):
 #                pruning_norm = metric_learning_configs["pruning_norm"],
 #                use_global_unstructured = metric_learning_configs["use_global_unstructured"],
                 verbose = 1 #2 for per-layer sparsity, #1 for overall sparsity
-            )
+            ),
+            EarlyStopping(monitor = 'val_loss')
         ]
     )
 
