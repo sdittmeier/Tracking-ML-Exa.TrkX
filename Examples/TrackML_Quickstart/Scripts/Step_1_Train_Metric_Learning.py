@@ -162,7 +162,7 @@ def train(config_file="pipeline_config.yaml"):
 #                use_global_unstructured = metric_learning_configs["use_global_unstructured"],
                 verbose = 1 #2 for per-layer sparsity, #1 for overall sparsity
             ),
-            EarlyStopping(monitor = 'val_loss')
+            EarlyStopping(monitor = 'pur_99', min_delta = 0.0001, patience = 5)
         ]
     )
 
