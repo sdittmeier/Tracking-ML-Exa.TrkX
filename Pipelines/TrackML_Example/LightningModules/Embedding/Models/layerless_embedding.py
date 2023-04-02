@@ -43,7 +43,7 @@ class LayerlessEmbedding(EmbeddingBase):
                 weight_bit_width = [hparams["weight_bit_width_input"], hparams["weight_bit_width_hidden"], hparams["weight_bit_width_output"]],
                 activation_qnn = hparams["activation_qnn"],
                 activation_bit_width = [hparams["activation_bit_width_input"], hparams["activation_bit_width_hidden"], hparams["activation_bit_width_output"]],
-                output_activation = [hparams["output_activation"]],
+                output_activation = hparams["output_activation"],
                 output_activation_quantization = hparams["output_activation_quantization"],
                 input_layer_quantization = hparams["input_quantization"],
                 input_layer_bitwidth = 1 + hparams["integer_part"] + hparams["fractional_part"],
