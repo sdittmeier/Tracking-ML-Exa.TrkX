@@ -1,5 +1,5 @@
 common_configs:
-  experiment_name: batchnorm_no_norm_QMLP_sweep_act
+  experiment_name: batchnorm_no_norm_QMLP_sweep_weights
   artifact_directory: artifacts/chep
   wandb_project: chep_MetricLearning
   gpus: 1
@@ -53,9 +53,9 @@ metric_learning_configs:
   weight_bit_width_hidden: 8
   weight_bit_width_output: 8
   activation_qnn: True ## telling the network to use quantReLU()
-  activation_bit_width_input: 8
-  activation_bit_width_hidden: 8
-  activation_bit_width_output: 8
+  activation_bit_width_input: 7
+  activation_bit_width_hidden: 5
+  activation_bit_width_output: 6
   output_activation: False
   output_activation_quantization: False
   # Input quantization Parameters, only using fixed point representation
