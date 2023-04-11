@@ -1,5 +1,5 @@
 common_configs:
-  experiment_name: batchnorm_no_norm_QMLP_sweep_weights
+  experiment_name: batchnorm_no_norm_QMLP_optimized_pruned_L1
   artifact_directory: artifacts/chep
   wandb_project: chep_MetricLearning
   gpus: 1
@@ -35,12 +35,12 @@ metric_learning_configs:
   factor: 0.7
   patience: 4
   regime: [rp, hnm] #, norm]
-  max_epochs: 180
-  l1_loss: False
+  max_epochs: 600
+  l1_loss: True
   l1_factor: 0.00005
-  pruning_allow: False
+  pruning_allow: True
   pruning_amount: 0.1
-  pruning_freq: 200
+  pruning_freq: 180
   pruning_val_loss: 0.000002
   pruning_fn: "l1_unstructured"
  # pruning_fn: "ln_structured" 
@@ -49,13 +49,13 @@ metric_learning_configs:
  # use_global_unstructured: False  # only for structured
   ##QNN Parameters
   quantized_network: True
-  weight_bit_width_input: 8
-  weight_bit_width_hidden: 8
-  weight_bit_width_output: 8
+  weight_bit_width_input: 4
+  weight_bit_width_hidden: 2
+  weight_bit_width_output: 4
   activation_qnn: True ## telling the network to use quantReLU()
-  activation_bit_width_input: 7
-  activation_bit_width_hidden: 5
-  activation_bit_width_output: 6
+  activation_bit_width_input: 8
+  activation_bit_width_hidden: 8
+  activation_bit_width_output: 8
   output_activation: False
   output_activation_quantization: False
   # Input quantization Parameters, only using fixed point representation

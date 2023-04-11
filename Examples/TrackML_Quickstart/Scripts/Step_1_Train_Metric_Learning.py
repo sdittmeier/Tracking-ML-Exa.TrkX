@@ -128,7 +128,7 @@ def train(config_file="pipeline_config.yaml"):
             return False
         
         val_loss.append(trainer.callback_metrics['val_loss'].cpu().numpy())  # could include feedback from validation or training loss here
-        if(len(val_loss) > 4):  # reduced number to 5 in a row
+        if((len(val_loss) > 10) and (last_pruned > -1)):
             val_loss.pop(0)
             if( (max(val_loss) - min(val_loss)) < pruning_val_loss):
                 logging.info(headline("Val_loss: Pruning" ))
@@ -161,8 +161,8 @@ def train(config_file="pipeline_config.yaml"):
 #                pruning_norm = metric_learning_configs["pruning_norm"],
 #                use_global_unstructured = metric_learning_configs["use_global_unstructured"],
                 verbose = 1 #2 for per-layer sparsity, #1 for overall sparsity
-            ),
-            EarlyStopping(monitor = 'pur_99', min_delta = 0.0001, patience = 5, mode = "max")
+            )#,
+            #EarlyStopping(monitor = 'pur_99', min_delta = 0.0001, patience = 5, mode = "max")
         ]
     )
 
