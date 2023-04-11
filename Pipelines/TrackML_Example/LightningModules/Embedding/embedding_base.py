@@ -91,9 +91,9 @@ class EmbeddingBase(LightningModule):
         fixed_point = self.hparams["input_quantization"]
         pre_point = self.hparams["integer_part"]
         post_point = self.hparams["fractional_part"]
-
-        batch.x = quantize_features(batch.x.cpu(), False, fixed_point, pre_point, post_point).to('cuda:0')
-        batch.cell_data = quantize_features(batch.cell_data.cpu(), False, fixed_point, pre_point, post_point).to('cuda:0')
+        if(fixed_point):
+            batch.x = quantize_features(batch.x.cpu(), False, fixed_point, pre_point, post_point).to('cuda:0')
+            batch.cell_data = quantize_features(batch.cell_data.cpu(), False, fixed_point, pre_point, post_point).to('cuda:0')
 
         if self.hparams["cell_channels"] > 0:
             input_data = torch.cat(
